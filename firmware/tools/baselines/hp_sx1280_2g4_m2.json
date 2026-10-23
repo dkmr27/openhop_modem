@@ -1,0 +1,23 @@
+{
+  "tx": "COM3",
+  "rx": "COM11",
+  "preset": "2g4",
+  "bench": {
+    "sent": 3,
+    "tx_fail": 0,
+    "received": 3,
+    "rssi_avg": -24.7,
+    "snr_avg": 5.2,
+    "airtime_ok": true
+  },
+  "high": {
+    "sent": 5,
+    "tx_fail": 0,
+    "received": 5,
+    "rssi_avg": -21,
+    "snr_avg": 4.0,
+    "airtime_ok": true
+  },
+  "applied_power_dbm": -2,
+  "timestamp": "2026-10-24T10:23:46"
+}
