@@ -3,10 +3,10 @@
   "firmware": "v1.4.0-promicro_e28",
   "debug": {
     "reset_reason": 0,
-    "uptime_ms": 8458,
+    "uptime_ms": 89933,
     "free_heap": 0,
     "min_free_heap": 0,
-    "last_loop_us": 2929
+    "last_loop_us": 1284180
   },
   "config": {
     "freq_hz": 2400500000,
@@ -35,7 +35,7 @@
       "len": 64,
       "airtime_us": 520507,
       "calc_us": 520507,
-      "round_trip_ms": 525
+      "round_trip_ms": 524
     },
     {
       "len": 200,
@@ -44,16 +44,16 @@
       "round_trip_ms": 1284
     }
   ],
-  "noise_floor_dbm": -91.6,
+  "noise_floor_dbm": -91.8,
   "status": {
-    "uptime_sec": 13,
-    "rx_count": 1,
-    "tx_count": 4,
+    "uptime_sec": 95,
+    "rx_count": 0,
+    "tx_count": 20,
     "crc_errors": 0,
-    "last_rssi": -60,
-    "last_snr_x10": 72,
-    "noise_floor_x10": -916,
-    "temp_c": 25,
+    "last_rssi": 0,
+    "last_snr_x10": 0,
+    "noise_floor_x10": -918,
+    "temp_c": 26,
     "radio_state": 0,
     "battery_mv": 65535
   },
@@ -165,22 +165,22 @@
     {
       "name": "TX 64 B airtime",
       "ok": true,
-      "detail": "520507 us vs calc 520507 us (+0.0%), round trip 526 ms"
+      "detail": "520507 us vs calc 520507 us (+0.0%), round trip 525 ms, 2 busy retries"
     },
     {
       "name": "TX 200 B airtime",
       "ok": true,
-      "detail": "1276691 us vs calc 1276691 us (+0.0%), round trip 1284 ms"
+      "detail": "1276691 us vs calc 1276691 us (+0.0%), round trip 1285 ms"
     },
     {
       "name": "noise floor plausible",
       "ok": true,
-      "detail": "-91.6 dBm"
+      "detail": "-91.8 dBm"
     },
     {
       "name": "TX counter advanced",
       "ok": true,
-      "detail": "tx_count 4"
+      "detail": "tx_count 20"
     },
     {
       "name": "GET_RADIO_INFO",
@@ -204,7 +204,6 @@
     }
   ],
   "debug_lines": [
-    "[BOOT] firmware v1.4.0-promicro_e28 on ProMicro E28 SX1280 ready (loop WDT 30s)",
     "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
     "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
     "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=13 cr=5 pwr_req=-9 sync=0x0012 pre=16",
@@ -233,5 +232,5 @@
     "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
     "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA"
   ],
-  "timestamp": "2026-10-24T08:54:50"
+  "timestamp": "2026-10-24T09:55:45"
 }

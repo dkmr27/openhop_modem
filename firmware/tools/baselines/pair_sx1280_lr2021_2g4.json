@@ -1,0 +1,37 @@
+{
+  "a": "COM3",
+  "b": "COM9",
+  "results": [
+    {
+      "sent": 20,
+      "tx_fail": 0,
+      "tx_errors": {},
+      "busy_retries": 26,
+      "received": 20,
+      "rssi_min": -22,
+      "rssi_avg": -19.6,
+      "rssi_max": -18,
+      "snr_min": 7.2,
+      "snr_avg": 8.6,
+      "snr_max": 10.0,
+      "direction": "A->B",
+      "sf": 11
+    },
+    {
+      "sent": 20,
+      "tx_fail": 0,
+      "tx_errors": {},
+      "busy_retries": 0,
+      "received": 20,
+      "rssi_min": -19,
+      "rssi_avg": -17.9,
+      "rssi_max": -17,
+      "snr_min": 6.7,
+      "snr_avg": 7.4,
+      "snr_max": 9.7,
+      "direction": "B->A",
+      "sf": 11
+    }
+  ],
+  "timestamp": "2026-10-24T09:49:36"
+}

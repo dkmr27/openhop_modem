@@ -372,6 +372,21 @@ class Modem:
             raise ModemError("TX_FAIL")
         return struct.unpack("<I", p[:4])[0], time.time() - t0
 
+    def transmit_lbt(self, data, attempts=4):
+        """transmit() with the host's listen-before-talk behaviour: on
+        ERR_CHANNEL_BUSY back off and retry. Returns (airtime_us, wall_s,
+        busy_retries); raises the last error if every attempt failed."""
+        retries = 0
+        for attempt in range(attempts):
+            try:
+                airtime, wall = self.transmit(data)
+                return airtime, wall, retries
+            except ModemError as exc:
+                if str(exc) != "ERR_CHANNEL_BUSY" or attempt == attempts - 1:
+                    raise
+                retries += 1
+                time.sleep(0.3 + 0.2 * attempt)
+
     def standby(self):
         return self.request(CMD_RADIO_STANDBY, b"", {CMD_RADIO_STANDBY_RESP})[1][0] == 0
 
@@ -585,7 +600,7 @@ def run_smoke(m, args, rep):
     # on dual-band chips) and TX works without reconfiguring.
     try:
         kept = m.get_config() == last_ok
-        m.transmit(test_payload(1, 16))
+        m.transmit_lbt(test_payload(1, 16))
         rep.check("rejected config keeps previous", kept, "GET_CONFIG unchanged, TX ok" if kept else "GET_CONFIG changed")
     except ModemError as exc:
         rep.check("rejected config keeps previous", False, str(exc))
@@ -632,7 +647,7 @@ def run_smoke(m, args, rep):
         if not has_cad:
             raise StopIteration
         m.set_auto_cad(True)
-        m.transmit(test_payload(0, 16))
+        m.transmit_lbt(test_payload(0, 16))
         rep.check("TX with auto-CAD", True)
     except StopIteration:
         pass
@@ -647,14 +662,15 @@ def run_smoke(m, args, rep):
     for length in (16, 64, 200):
         expected = lora_time_on_air_us(cfg, length)
         try:
-            airtime, wall = m.transmit(test_payload(length, length))
+            airtime, wall, busy = m.transmit_lbt(test_payload(length, length))
         except ModemError as exc:
             rep.check(f"TX {length} B", False, str(exc))
             continue
         err = (airtime - expected) / expected * 100
         air.append(dict(len=length, airtime_us=airtime, calc_us=expected, round_trip_ms=int(wall * 1000)))
         rep.check(f"TX {length} B airtime", abs(err) < 3.0,
-                  f"{airtime} us vs calc {expected} us ({err:+.1f}%), round trip {wall * 1000:.0f} ms")
+                  f"{airtime} us vs calc {expected} us ({err:+.1f}%), round trip {wall * 1000:.0f} ms"
+                  + (f", {busy} busy retr{'y' if busy == 1 else 'ies'}" if busy else ""))
         time.sleep(0.3)
     rep.data["tx"] = air
 
@@ -769,24 +785,13 @@ def pair_direction(tx, rx, cfg, count, length, gap):
         rx.rx_packets.get_nowait()
     got, rssi, snr, tx_fail, tx_errors, busy_retries = {}, [], [], 0, {}, 0
     for seq in range(count):
-        # Like the host's listen-before-talk: ERR_CHANNEL_BUSY means the
-        # modem saw (or thought it saw) a reception starting; back off and
-        # retry a few times before counting a failure.
-        sent = False
-        for attempt in range(4):
-            try:
-                tx.transmit(test_payload(seq, length))
-                sent = True
-                break
-            except ModemError as exc:
-                if str(exc) == "ERR_CHANNEL_BUSY" and attempt < 3:
-                    busy_retries += 1
-                    time.sleep(0.3 + 0.2 * attempt)
-                    continue
-                tx_fail += 1
-                tx_errors[str(exc)] = tx_errors.get(str(exc), 0) + 1
-                break
-        if not sent:
+        # Like the host's listen-before-talk: retry on ERR_CHANNEL_BUSY.
+        try:
+            _, _, busy = tx.transmit_lbt(test_payload(seq, length))
+            busy_retries += busy
+        except ModemError as exc:
+            tx_fail += 1
+            tx_errors[str(exc)] = tx_errors.get(str(exc), 0) + 1
             continue
         deadline = time.time() + expected / 1e6 + 0.5
         while time.time() < deadline:

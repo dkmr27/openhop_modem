@@ -64,7 +64,18 @@ int16_t RadioHal::setOutputPower(int8_t power) {
 int16_t RadioHal::applyOutputPower() {
     const int8_t ceiling = getMaxOutputPower(freqHz_);
     if (ceiling == RADIO_POWER_NONE) return RADIOLIB_ERR_INVALID_OUTPUT_POWER;
-    const int8_t power = radioClampPower(requestedPowerDbm_, ceiling);
+    int8_t power = radioClampPower(requestedPowerDbm_, ceiling);
+    // After a band change this re-applies the previous band's request, which
+    // can be below the new band's chip minimum (e.g. -18 dBm at 2.4 GHz, then
+    // sub-GHz with a -9 dBm minimum). Raise it to the minimum; a new request
+    // below the minimum is rejected earlier by isConfigSupported().
+    const RadioBandInfo* bands = nullptr;
+    const uint8_t count = getBands(bands);
+    for (uint8_t i = 0; i < count; ++i) {
+        if (bands[i].band == radioBandFor(freqHz_) && power < bands[i].powerMinDbm) {
+            power = bands[i].powerMinDbm;
+        }
+    }
     const int16_t state = setChipOutputPower(power);
     if (state == RADIOLIB_ERR_NONE) appliedPowerDbm_ = power;
     return state;
