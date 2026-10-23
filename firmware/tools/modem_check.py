@@ -767,13 +767,26 @@ def pair_direction(tx, rx, cfg, count, length, gap):
     expected = lora_time_on_air_us(cfg, length)
     while not rx.rx_packets.empty():
         rx.rx_packets.get_nowait()
-    got, rssi, snr, tx_fail, tx_errors = {}, [], [], 0, {}
+    got, rssi, snr, tx_fail, tx_errors, busy_retries = {}, [], [], 0, {}, 0
     for seq in range(count):
-        try:
-            tx.transmit(test_payload(seq, length))
-        except ModemError as exc:
-            tx_fail += 1
-            tx_errors[str(exc)] = tx_errors.get(str(exc), 0) + 1
+        # Like the host's listen-before-talk: ERR_CHANNEL_BUSY means the
+        # modem saw (or thought it saw) a reception starting; back off and
+        # retry a few times before counting a failure.
+        sent = False
+        for attempt in range(4):
+            try:
+                tx.transmit(test_payload(seq, length))
+                sent = True
+                break
+            except ModemError as exc:
+                if str(exc) == "ERR_CHANNEL_BUSY" and attempt < 3:
+                    busy_retries += 1
+                    time.sleep(0.3 + 0.2 * attempt)
+                    continue
+                tx_fail += 1
+                tx_errors[str(exc)] = tx_errors.get(str(exc), 0) + 1
+                break
+        if not sent:
             continue
         deadline = time.time() + expected / 1e6 + 0.5
         while time.time() < deadline:
@@ -790,7 +803,8 @@ def pair_direction(tx, rx, cfg, count, length, gap):
                 if s == seq:
                     break
         time.sleep(gap)
-    res = dict(sent=count - tx_fail, tx_fail=tx_fail, tx_errors=tx_errors, received=len(got))
+    res = dict(sent=count - tx_fail, tx_fail=tx_fail, tx_errors=tx_errors,
+               busy_retries=busy_retries, received=len(got))
     if rssi:
         res.update(rssi_min=min(rssi), rssi_avg=round(statistics.mean(rssi), 1), rssi_max=max(rssi),
                    snr_min=min(snr), snr_avg=round(statistics.mean(snr), 1), snr_max=max(snr))
@@ -821,6 +835,8 @@ def cmd_pair(args):
                 if "rssi_avg" in r:
                     line += (f"  RSSI {r['rssi_min']}/{r['rssi_avg']}/{r['rssi_max']} dBm"
                              f"  SNR {r['snr_min']}/{r['snr_avg']}/{r['snr_max']} dB (min/avg/max)")
+                if r["busy_retries"]:
+                    line += f"  busy retries {r['busy_retries']}"
                 if r["tx_errors"]:
                     line += f"  TX errors {r['tx_errors']}"
                 print(line)

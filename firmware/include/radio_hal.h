@@ -121,6 +121,7 @@ public:
 private:
     // Chip-specific pieces behind the shared logic in radio_hal_common.cpp.
     static bool acceptsBandwidth(RadioBand band, uint32_t bwHz);
+    static bool acceptsPreamble(uint16_t len);
     int16_t setChipFrequency(float freqMHz);
     int16_t setChipOutputPower(int8_t power);
     int16_t applyOutputPower();

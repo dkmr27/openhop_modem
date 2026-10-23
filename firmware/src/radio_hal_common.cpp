@@ -38,6 +38,7 @@ bool RadioHal::isConfigSupported(const RadioConfig& cfg) {
     if (cfg.sf < info->sfMin || cfg.sf > info->sfMax) return false;
     if (cfg.cr < info->crMin || cfg.cr > info->crMax) return false;
     if (!acceptsBandwidth(band, cfg.bandwidth_hz)) return false;
+    if (!acceptsPreamble(cfg.preamble_len)) return false;
     if (cfg.power_dbm < info->powerMinDbm) return false;
     return true;
 }

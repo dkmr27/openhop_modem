@@ -1,0 +1,237 @@
+{
+  "device": "COM3",
+  "firmware": "v1.4.0-promicro_e28",
+  "debug": {
+    "reset_reason": 0,
+    "uptime_ms": 8458,
+    "free_heap": 0,
+    "min_free_heap": 0,
+    "last_loop_us": 2929
+  },
+  "config": {
+    "freq_hz": 2400500000,
+    "bandwidth_hz": 406250,
+    "sf": 11,
+    "cr": 5,
+    "power_dbm": -9,
+    "syncword": 18,
+    "preamble_len": 16
+  },
+  "power_readback_dbm": -9,
+  "rejects": {
+    "bad SF (13)": "ERR_INVALID_CONFIG",
+    "bad CR (9)": "ERR_INVALID_CONFIG",
+    "bad BW (1 kHz)": "ERR_INVALID_CONFIG",
+    "other band (subg preset)": "ERR_INVALID_CONFIG"
+  },
+  "tx": [
+    {
+      "len": 16,
+      "airtime_us": 243239,
+      "calc_us": 243239,
+      "round_trip_ms": 247
+    },
+    {
+      "len": 64,
+      "airtime_us": 520507,
+      "calc_us": 520507,
+      "round_trip_ms": 525
+    },
+    {
+      "len": 200,
+      "airtime_us": 1276691,
+      "calc_us": 1276691,
+      "round_trip_ms": 1284
+    }
+  ],
+  "noise_floor_dbm": -91.6,
+  "status": {
+    "uptime_sec": 13,
+    "rx_count": 1,
+    "tx_count": 4,
+    "crc_errors": 0,
+    "last_rssi": -60,
+    "last_snr_x10": 72,
+    "noise_floor_x10": -916,
+    "temp_c": 25,
+    "radio_state": 0,
+    "battery_mv": 65535
+  },
+  "radio_info": {
+    "version": 1,
+    "chip_id": 3,
+    "chip": "SX1280",
+    "chip_name": "SX1280",
+    "features": [
+      "RX guard"
+    ],
+    "current_band": "2g4",
+    "applied_power_dbm": -9,
+    "bands": [
+      {
+        "band": "2g4",
+        "freq_min_hz": 2400000000,
+        "freq_max_hz": 2500000000,
+        "power_min_dbm": -18,
+        "power_max_dbm": -2,
+        "sf": [
+          5,
+          12
+        ],
+        "cr": [
+          4,
+          8
+        ],
+        "bandwidths_hz": [
+          203125,
+          406250,
+          812500,
+          1625000
+        ]
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "ping / version",
+      "ok": true,
+      "detail": "v1.4.0-promicro_e28"
+    },
+    {
+      "name": "SET_CONFIG test preset",
+      "ok": true,
+      "detail": "2400.5000 MHz  BW 406.25 kHz  SF11  CR 4/5  -9 dBm  sync 0x12  pre 16"
+    },
+    {
+      "name": "power readback",
+      "ok": true,
+      "detail": "requested -9, modem reports -9"
+    },
+    {
+      "name": "GET_CONFIG matches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "reject bad SF (13)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "reject bad CR (9)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "reject bad BW (1 kHz)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "rejected config keeps previous",
+      "ok": true,
+      "detail": "GET_CONFIG unchanged, TX ok"
+    },
+    {
+      "name": "recovers after rejects",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "RADIO_STANDBY",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "RADIO_RESUME",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CAD_REQUEST refused (no CAD)",
+      "ok": true,
+      "detail": "ERR_CAD_FAILED"
+    },
+    {
+      "name": "auto-CAD refused (no CAD)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "TX 16 B airtime",
+      "ok": true,
+      "detail": "243239 us vs calc 243239 us (+0.0%), round trip 247 ms"
+    },
+    {
+      "name": "TX 64 B airtime",
+      "ok": true,
+      "detail": "520507 us vs calc 520507 us (+0.0%), round trip 526 ms"
+    },
+    {
+      "name": "TX 200 B airtime",
+      "ok": true,
+      "detail": "1276691 us vs calc 1276691 us (+0.0%), round trip 1284 ms"
+    },
+    {
+      "name": "noise floor plausible",
+      "ok": true,
+      "detail": "-91.6 dBm"
+    },
+    {
+      "name": "TX counter advanced",
+      "ok": true,
+      "detail": "tx_count 4"
+    },
+    {
+      "name": "GET_RADIO_INFO",
+      "ok": true,
+      "detail": "SX1280, bands ['2g4'], features ['RX guard']"
+    },
+    {
+      "name": "2g4 22 dBm request applies -2",
+      "ok": true,
+      "detail": "applied -2 dBm"
+    },
+    {
+      "name": "2g4 over-ceiling request clamps",
+      "ok": true,
+      "detail": "requested 6, applied -2 dBm"
+    },
+    {
+      "name": "2g4 below chip minimum rejected",
+      "ok": true,
+      "detail": "-19 dBm: ERR_INVALID_CONFIG"
+    }
+  ],
+  "debug_lines": [
+    "[BOOT] firmware v1.4.0-promicro_e28 on ProMicro E28 SX1280 ready (loop WDT 30s)",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=13 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=9 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=1000 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=927925000 bw=125000 sf=9 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] TX_REQUEST len=16 src=0 state=0",
+    "[INFO] TX_DONE airtime=243239 us, sent via src=0",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] radio STANDBY",
+    "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] radio RESUME (ok=1)",
+    "[WARN] auto-CAD refused: SX1280 has no CAD support",
+    "[INFO] TX_REQUEST len=16 src=0 state=0",
+    "[INFO] TX_DONE airtime=243239 us, sent via src=0",
+    "[INFO] TX_REQUEST len=64 src=0 state=0",
+    "[INFO] TX_DONE airtime=520507 us, sent via src=0",
+    "[INFO] TX_REQUEST len=200 src=0 state=0",
+    "[INFO] TX_DONE airtime=1276691 us, sent via src=0",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=22 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=22 pwr=-2 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=6 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=6 pwr=-2 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-19 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA"
+  ],
+  "timestamp": "2026-10-24T08:54:50"
+}

@@ -222,6 +222,8 @@ bool RadioHal::acceptsBandwidth(RadioBand band, uint32_t bwHz) {
     }
 }
 
+bool RadioHal::acceptsPreamble(uint16_t) { return true; }  // any length
+
 // ─── Configuration ──────────────────────────────────────────
 int16_t RadioHal::standby() { return chip.standby(); }
 int16_t RadioHal::setChipFrequency(float freqMHz) { return chip.setFrequency(freqMHz); }
