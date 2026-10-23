@@ -2,8 +2,9 @@
 // radio_hal.h — LoRa radio hardware abstraction
 //
 // One class, `RadioHal`, with one implementation per radio chip.
-// Exactly one implementation is compiled per build, selected by a
-// RADIO_<chip> macro; boards that don't declare one get RADIO_SX1262.
+// Exactly one implementation is compiled per build, selected by the
+// RADIO_<chip> macro the board header declares (board_config.h defaults
+// it to RADIO_SX1262).
 //
 // Method names deliberately mirror RadioLib (and the calls main.cpp
 // made before this layer existed): setFrequency, startReceive,
@@ -19,10 +20,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <RadioLib.h>
+#include "board_config.h"   // board header first: it picks RADIO_<chip>
 
-#if !defined(RADIO_SX1262)
-#  define RADIO_SX1262
-#endif
+static_assert(RF_SWITCH_PIN_NC == RADIOLIB_NC,
+              "RF_SWITCH_PIN_NC must match RadioLib's not-connected pin value");
 
 class RadioHal {
 public:
@@ -46,6 +47,10 @@ public:
     void configureBoardRadioOptions();
     void setDio1Action(void (*func)(void));
     const char* getChipName() const;
+    // The chip's boot preset, used when BOARD.boot_config is nullptr.
+    static RadioConfig defaultConfig();
+    // The settings applied at boot: BOARD.boot_config, else defaultConfig().
+    static RadioConfig bootConfig();
 
     // ─── Configuration ──────────────────────────────────────
     int16_t standby();
@@ -98,3 +103,7 @@ private:
 };
 
 extern RadioHal radio;
+
+inline RadioConfig RadioHal::bootConfig() {
+    return BOARD.boot_config ? *BOARD.boot_config : defaultConfig();
+}

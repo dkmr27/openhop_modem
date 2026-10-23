@@ -8,10 +8,15 @@
 //
 // Board selection happens at compile time via a `-DBOARD_<name>` flag
 // in platformio.ini's build_flags. Exactly one must be defined.
+//
+// The board header also picks the LoRa radio chip with one macro at its
+// top: RADIO_SX1262 (the default when a header declares none),
+// RADIO_LR1121, RADIO_SX1280 or RADIO_LR2021. See radio_hal.h.
 // =============================================================
 #pragma once
 
 #include <stdint.h>
+#include "protocol.h"   // RadioConfig, used for BoardConfig::boot_config
 
 // ─── RF switch policy ───────────────────────────────────────
 // Different SX1262 carrier boards control the RF switch / PA / LNA
@@ -71,6 +76,29 @@ struct RfFrontEndControlConfig {
     bool   lna_enabled_active_high = true;
     bool   lna_default_enabled = true;
     bool   lna_user_selectable = false;   // expose persistent RX-only selection
+};
+
+// ─── RF switch table (LR11x0 / LR2021 / SX128x) ─────────────
+// Chips that drive their RF switch from their own DIOs take a table of
+// switch-pin levels per radio mode. `pins` holds up to four switch pins
+// (e.g. RADIOLIB_LR11X0_DIO5; unused entries stay RF_SWITCH_PIN_NC, which
+// equals RADIOLIB_NC). Each mode entry pairs the chip's own RadioLib mode
+// value (e.g. LR11x0::MODE_TX_HP) with a level bitmask: bit n is the level
+// of pins[n]. SX126x boards use rf_switch.dio2_as_rf_switch / rx_pin /
+// tx_pin instead and leave this disabled.
+constexpr uint32_t RF_SWITCH_PIN_NC = 0xFFFFFFFFUL;
+
+struct RfSwitchModeLevels {
+    uint8_t mode;
+    uint8_t levels;
+};
+
+struct RfSwitchTable {
+    bool enabled = false;
+    uint32_t pins[4] = { RF_SWITCH_PIN_NC, RF_SWITCH_PIN_NC,
+                         RF_SWITCH_PIN_NC, RF_SWITCH_PIN_NC };
+    RfSwitchModeLevels modes[8] = {};
+    uint8_t mode_count = 0;
 };
 
 struct BatterySenseConfig {
@@ -294,6 +322,31 @@ struct BoardConfig {
     // Optional extensions must remain trailing for positional nRF52 boards.
     ThermistorConfig thermistor;
     uint16_t pa_ramp_time_us = 0;  // 0 = keep RadioLib's default ramp
+
+    // ─── Multi-chip radio extensions ────────────────────────
+    // Trailing so positional board initializers stay valid. Defaults keep
+    // every existing SX1262 board's behaviour unchanged.
+
+    // 2.4 GHz chip-drive ceiling in dBm, the counterpart of
+    // max_tx_power_dbm (which is the sub-GHz ceiling). INT8_MIN means the
+    // board has no usable 2.4 GHz RF path, and 2.4 GHz configs are refused.
+    int8_t max_tx_power_2g4_dbm = INT8_MIN;
+
+    // Boosted RX gain for non-SX126x chips: 0 = off. LR11x0 and SX128x treat
+    // any non-zero value as on; LR2021 uses it as its gain level (1-7).
+    // SX126x boards keep using sx126x_rx_boosted_gain.
+    uint8_t rx_boosted_gain_level = 0;
+
+    // LR11x0: always use the high-power PA at sub-GHz, for boards that only
+    // wire RFO_HP. Otherwise the HAL picks LP below 15 dBm.
+    bool lr11x0_force_hp_pa = false;
+
+    // DIO-driven RF switch for LR11x0 / LR2021 / SX128x boards.
+    RfSwitchTable rf_switch_table = {};
+
+    // Radio settings applied at boot, before the host sends SET_CONFIG.
+    // nullptr = the chip's default preset (RadioHal::defaultConfig()).
+    const RadioConfig* boot_config = nullptr;
 };
 
 extern const BoardConfig BOARD;
@@ -343,4 +396,12 @@ extern const BoardConfig BOARD;
 #  include "boards/station_g3.h"
 #else
 #  error "No board selected — add one of -DBOARD_HELTEC_V3 / -DBOARD_HELTEC_V4 / -DBOARD_HELTEC_V42 / -DBOARD_HELTEC_V43 / -DBOARD_IKOKA_STICK / -DBOARD_LILYGO_T3S3 / -DBOARD_RAK3112_WISMESH / -DBOARD_ESP32_P4_NANO / -DBOARD_ETHERMESH_1W / -DBOARD_HELTEC_T114 / -DBOARD_HELTEC_TRACKER_V2 / -DBOARD_XIAO_WIO_SX1262 / -DBOARD_PHOTON_1W_XIAO_ESP32C6 / -DBOARD_XIAO_NRF52_WIO / -DBOARD_RAK4631_WISMESH_ETH / -DBOARD_RAK4631_USB / -DBOARD_RAK3401 / -DBOARD_STATION_G2 / -DBOARD_LILYGO_TBEAM_S3_SUPREME / -DBOARD_LILYGO_TBEAM_1W / -DBOARD_STATION_G3 to platformio.ini build_flags"
+#endif
+
+// ─── Radio chip selection ───────────────────────────────────
+#if !defined(RADIO_SX1262) && !defined(RADIO_LR1121) && !defined(RADIO_SX1280) && !defined(RADIO_LR2021)
+#  define RADIO_SX1262
+#endif
+#if (defined(RADIO_SX1262) + defined(RADIO_LR1121) + defined(RADIO_SX1280) + defined(RADIO_LR2021)) != 1
+#  error "Exactly one RADIO_<chip> may be defined (see board_config.h)"
 #endif

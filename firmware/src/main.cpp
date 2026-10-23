@@ -294,16 +294,8 @@ static constexpr uint32_t LOOP_WDT_TIMEOUT_S = 30;
 // defined above so call sites compile unchanged.
 OledDisplay oled;
 
-// ─── Default config: EU/UK (Narrow), Switzerland preset ──────
-static RadioConfig currentConfig = {
-    .freq_hz      = 869618000,
-    .bandwidth_hz = 62500,
-    .sf           = 8,
-    .cr           = 8,
-    .power_dbm    = 22,
-    .syncword     = 0x12,
-    .preamble_len = 16
-};
+// ─── Boot config: the board's boot_config, else the chip's preset ──
+static RadioConfig currentConfig = RadioHal::bootConfig();
 
 static StatusResp  status        = {};
 // Hard-standby flag set by CMD_RADIO_STANDBY. While true, loop()
@@ -1566,16 +1558,20 @@ void setup() {
         radio.rfSwitchConfigureRadio();
         radio.configureBoardRadioOptions();
 
-        if (!applyConfig(currentConfig)) {
+        // A rejected boot config no longer halts the board: the radio stays
+        // in standby with TX refused (applyConfig leaves radioTxReady false)
+        // until the host's next valid SET_CONFIG applies and starts RX.
+        const bool bootConfigOk = applyConfig(currentConfig);
+        if (!bootConfigOk) {
             oled.showError("Config fail!");
             sendError(ERR_INVALID_CONFIG, TransportSource::USB);
-            while (true) delay(1000);
+            LOG_R_ERR("boot config rejected; radio idle until SET_CONFIG");
         }
 
         radio.setDio1Action(onDio1Rise);
         LOG_R_INFO("DIO1 IRQ attached on GPIO%d", (int)BOARD.pin_lora_dio1);
 
-        if (!startReceive()) {
+        if (bootConfigOk && !startReceive()) {
             oled.showError("RX start fail!");
             while (true) delay(1000);
         }

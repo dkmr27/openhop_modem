@@ -7,11 +7,25 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include "board_config.h"
 #include "pa_ramp.h"
-#include "protocol.h"
 
 namespace {
+
+// BOARD.pa_ramp_time_us → SX126x SetTxParams ramp code. Values the chip
+// can't do exactly fall back to 0, which keeps RadioLib's default ramp.
+uint8_t paRampSetting(uint16_t us) {
+    switch (us) {
+    case 10:   return RADIOLIB_SX126X_PA_RAMP_10U;
+    case 20:   return RADIOLIB_SX126X_PA_RAMP_20U;
+    case 40:   return RADIOLIB_SX126X_PA_RAMP_40U;
+    case 80:   return RADIOLIB_SX126X_PA_RAMP_80U;
+    case 200:  return RADIOLIB_SX126X_PA_RAMP_200U;
+    case 800:  return RADIOLIB_SX126X_PA_RAMP_800U;
+    case 1700: return RADIOLIB_SX126X_PA_RAMP_1700U;
+    case 3400: return RADIOLIB_SX126X_PA_RAMP_3400U;
+    default:   return 0;
+    }
+}
 
 class OpenHopSX1262 : public SX1262 {
 public:
@@ -153,6 +167,20 @@ void RadioHal::setDio1Action(void (*func)(void)) { chip.setDio1Action(func); }
 
 const char* RadioHal::getChipName() const { return "SX1262"; }
 
+RadioConfig RadioHal::defaultConfig() {
+    // EU/UK (Narrow), Switzerland preset; the host replaces it with
+    // SET_CONFIG before any TX/RX.
+    RadioConfig cfg = {};
+    cfg.freq_hz      = 869618000;
+    cfg.bandwidth_hz = 62500;
+    cfg.sf           = 8;
+    cfg.cr           = 8;
+    cfg.power_dbm    = 22;
+    cfg.syncword     = 0x12;
+    cfg.preamble_len = 16;
+    return cfg;
+}
+
 // ─── Configuration ──────────────────────────────────────────
 int16_t RadioHal::standby() { return chip.standby(); }
 int16_t RadioHal::setFrequency(float freqMHz) { return chip.setFrequency(freqMHz); }
@@ -161,9 +189,7 @@ int16_t RadioHal::setSpreadingFactor(uint8_t sf) { return chip.setSpreadingFacto
 int16_t RadioHal::setCodingRate(uint8_t cr) { return chip.setCodingRate(cr); }
 
 int16_t RadioHal::setOutputPower(int8_t power) {
-    const uint8_t rampSetting = BOARD.pa_ramp_time_us == 1700
-        ? RADIOLIB_SX126X_PA_RAMP_1700U : 0;
-    return applyOutputPowerAndRamp(chip, power, rampSetting);
+    return applyOutputPowerAndRamp(chip, power, paRampSetting(BOARD.pa_ramp_time_us));
 }
 
 float   RadioHal::getCurrentLimit() { return chip.getCurrentLimit(); }
