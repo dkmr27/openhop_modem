@@ -678,6 +678,9 @@ def add_radio_args(p):
 
 
 def main():
+    # Firmware debug text can contain bytes the Windows console codepage
+    # can't encode; never let printing it kill a test run.
+    sys.stdout.reconfigure(errors="replace")
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--port", help='device: "COM19" or "tcp:HOST[:PORT[:TOKEN]]"')
     ap.add_argument("-v", "--verbose", action="store_true", help="show firmware debug text")

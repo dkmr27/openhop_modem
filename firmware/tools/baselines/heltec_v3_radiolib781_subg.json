@@ -1,0 +1,157 @@
+{
+  "device": "COM19",
+  "firmware": "v1.4.0-heltec",
+  "debug": {
+    "reset_reason": 1,
+    "uptime_ms": 11985,
+    "free_heap": 248948,
+    "min_free_heap": 248840,
+    "last_loop_us": 26778
+  },
+  "config": {
+    "freq_hz": 927925000,
+    "bandwidth_hz": 125000,
+    "sf": 9,
+    "cr": 5,
+    "power_dbm": -9,
+    "syncword": 18,
+    "preamble_len": 16
+  },
+  "power_readback_dbm": -9,
+  "rejects": {
+    "bad SF (13)": "ERR_INVALID_CONFIG",
+    "bad CR (9)": "ERR_INVALID_CONFIG",
+    "bad BW (1 kHz)": "ERR_INVALID_CONFIG",
+    "other band (2g4 preset)": "ERR_INVALID_CONFIG"
+  },
+  "tx": [
+    {
+      "len": 16,
+      "airtime_us": 197632,
+      "calc_us": 197632,
+      "round_trip_ms": 210
+    },
+    {
+      "len": 64,
+      "airtime_us": 422912,
+      "calc_us": 422911,
+      "round_trip_ms": 437
+    },
+    {
+      "len": 200,
+      "airtime_us": 1037312,
+      "calc_us": 1037312,
+      "round_trip_ms": 1054
+    }
+  ],
+  "noise_floor_dbm": -104.7,
+  "status": {
+    "uptime_sec": 16,
+    "rx_count": 0,
+    "tx_count": 3,
+    "crc_errors": 0,
+    "last_rssi": 0,
+    "last_snr_x10": 0,
+    "noise_floor_x10": -1047,
+    "temp_c": 51,
+    "radio_state": 0,
+    "battery_mv": 65535
+  },
+  "checks": [
+    {
+      "name": "ping / version",
+      "ok": true,
+      "detail": "v1.4.0-heltec"
+    },
+    {
+      "name": "SET_CONFIG test preset",
+      "ok": true,
+      "detail": "927.9250 MHz  BW 125 kHz  SF9  CR 4/5  -9 dBm  sync 0x12  pre 16"
+    },
+    {
+      "name": "power readback",
+      "ok": true,
+      "detail": "requested -9, modem reports -9"
+    },
+    {
+      "name": "GET_CONFIG matches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "reject bad SF (13)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "reject bad CR (9)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "reject bad BW (1 kHz)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "recovers after rejects",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "RADIO_STANDBY",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "RADIO_RESUME",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "TX 16 B airtime",
+      "ok": true,
+      "detail": "197632 us vs calc 197632 us (+0.0%), round trip 210 ms"
+    },
+    {
+      "name": "TX 64 B airtime",
+      "ok": true,
+      "detail": "422912 us vs calc 422911 us (+0.0%), round trip 438 ms"
+    },
+    {
+      "name": "TX 200 B airtime",
+      "ok": true,
+      "detail": "1037312 us vs calc 1037312 us (+0.0%), round trip 1055 ms"
+    },
+    {
+      "name": "noise floor plausible",
+      "ok": true,
+      "detail": "-104.7 dBm"
+    },
+    {
+      "name": "TX counter advanced",
+      "ok": true,
+      "detail": "tx_count 3"
+    }
+  ],
+  "debug_lines": [
+    "[INFO] SET_CONFIG recv src=0 board=Heltec V3 fw=v1.4.0-heltec freq=927925000 bw=125000 sf=9 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=Heltec V3 fw=v1.4.0-heltec pwr_req=-9 pwr=-9 max=22 setOutputPower=0 ocp_before=140mA ocp_after=140mA",
+    "[INFO] SET_CONFIG recv src=0 board=Heltec V3 fw=v1.4.0-heltec freq=927925000 bw=125000 sf=13 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=Heltec V3 fw=v1.4.0-heltec freq=927925000 bw=125000 sf=9 cr=9 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=Heltec V3 fw=v1.4.0-heltec freq=927925000 bw=1000 sf=9 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=Heltec V3 fw=v1.4.0-heltec freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=Heltec V3 fw=v1.4.0-heltec freq=927925000 bw=125000 sf=9 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=Heltec V3 fw=v1.4.0-heltec pwr_req=-9 pwr=-9 max=22 setOutputPower=0 ocp_before=140mA ocp_after=140mA",
+    "[INFO] radio STANDBY",
+    "[INFO] applyConfig board=Heltec V3 fw=v1.4.0-heltec pwr_req=-9 pwr=-9 max=22 setOutputPower=0 ocp_before=140mA ocp_after=140mA",
+    "[INFO] radio RESUME (ok=1)",
+    "[INFO] TX_REQUEST len=16 src=0 state=0",
+    "[INFO] TX_DONE airtime=197632 us, sent via src=0",
+    "[INFO] TX_REQUEST len=64 src=0 state=0",
+    "[INFO] TX_DONE airtime=422912 us, sent via src=0",
+    "[INFO] TX_REQUEST len=200 src=0 state=0",
+    "[INFO] TX_DONE airtime=1037312 us, sent via src=0"
+  ],
+  "timestamp": "2026-10-23T21:29:06"
+}
