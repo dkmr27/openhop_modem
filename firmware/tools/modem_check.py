@@ -50,12 +50,16 @@ CMD_STATUS_REQ = 0x20
 CMD_STATUS_RESP = 0x21
 CMD_NOISE_REQ = 0x22
 CMD_NOISE_RESP = 0x23
+CMD_CAD_REQUEST = 0x30
 CMD_RX_START = 0x31
+CMD_CAD_RESP = 0x32
 CMD_RX_STARTED = 0x33
 CMD_RADIO_STANDBY = 0x40
 CMD_RADIO_RESUME = 0x42
 CMD_RADIO_STANDBY_RESP = 0x44
 CMD_RADIO_RESUME_RESP = 0x46
+CMD_SET_AUTO_CAD = 0x4A
+CMD_SET_AUTO_CAD_RESP = 0x4B
 CMD_AUTH = 0x50
 CMD_AUTH_OK = 0x51
 CMD_GET_VERSION = 0x70
@@ -345,6 +349,13 @@ class Modem:
     def resume(self):
         return self.request(CMD_RADIO_RESUME, b"", {CMD_RADIO_RESUME_RESP}, timeout=3)[1][0] == 0
 
+    def cad(self):
+        """Channel activity detection: True = busy, False = clear."""
+        return self.request(CMD_CAD_REQUEST, b"", {CMD_CAD_RESP}, timeout=2)[1][0] != 0
+
+    def set_auto_cad(self, on):
+        return self.request(CMD_SET_AUTO_CAD, bytes([1 if on else 0]), {CMD_SET_AUTO_CAD_RESP})[1][0] == 0
+
     def rx_start(self):
         self.request(CMD_RX_START, b"", {CMD_RX_STARTED})
 
@@ -517,6 +528,24 @@ def run_smoke(m, args, rep):
     # Standby / resume
     rep.check("RADIO_STANDBY", m.standby())
     rep.check("RADIO_RESUME", m.resume())
+
+    # CAD on request, then auto-CAD in front of a TX. On a quiet bench
+    # channel every scan should finish and report clear.
+    try:
+        verdicts = [m.cad() for _ in range(5)]
+        rep.data["cad"] = verdicts
+        rep.check("CAD_REQUEST completes", True,
+                  f"{verdicts.count(False)} clear / {verdicts.count(True)} busy of 5")
+    except ModemError as exc:
+        rep.check("CAD_REQUEST completes", False, str(exc))
+    try:
+        m.set_auto_cad(True)
+        m.transmit(test_payload(0, 16))
+        rep.check("TX with auto-CAD", True)
+    except ModemError as exc:
+        rep.check("TX with auto-CAD", False, str(exc))
+    finally:
+        m.set_auto_cad(False)
 
     # TX airtime at bench power
     air = []

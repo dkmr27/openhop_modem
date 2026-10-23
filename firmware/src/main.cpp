@@ -10,7 +10,6 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <RadioLib.h>
 #include <stdarg.h>
 #include "legacy_rak4631_build_flags.h"
 #include "protocol.h"
@@ -21,11 +20,11 @@
 #include "compat.h"
 #include "rf_frontend.h"
 #include "agc_maintenance.h"
+#include "radio_hal.h"
 #include "station_g3_power.h"
 #include "environment_sensor.h"
 #include "runtime_stats.h"
 #include "battery_monitor.h"
-#include "pa_ramp.h"
 #include "tbeam_1w_fan.h"
 #include "gps_manager.h"
 #if defined(BOARD_HELTEC_T114)
@@ -287,49 +286,8 @@ static String fwVersion;   // populated in setup()
 static constexpr uint32_t LOOP_WDT_TIMEOUT_S = 30;
 
 // ─── Hardware setup ──────────────────────────────────────────
-class OpenHopSX1262 : public SX1262 {
-public:
-    using SX1262::SX1262;
-
-    int16_t startReceive() override {
-        // RadioLib's default RX IRQ set omits PREAMBLE_DETECTED. The passive
-        // reception guard needs that flag latched before HEADER_VALID so a
-        // TX/CAD request cannot abort a frame during its preamble.
-        return SX1262::startReceive(
-            RADIOLIB_SX126X_RX_TIMEOUT_INF,
-            RADIOLIB_IRQ_RX_DEFAULT_FLAGS |
-                (1UL << RADIOLIB_IRQ_PREAMBLE_DETECTED),
-            RADIOLIB_IRQ_RX_DEFAULT_MASK,
-            0);
-    }
-
-    int16_t applyRegisterPatch08B5() {
-        uint8_t value = 0;
-        int16_t state = readRegister(0x08B5, &value, 1);
-        if (state != RADIOLIB_ERR_NONE) return state;
-        value |= 0x01;
-        return writeRegister(0x08B5, &value, 1);
-    }
-};
-
-// SX1262 / E22P pin map comes from BOARD (see boards/<name>.h).
-#if defined(BOARD_PHOTON_1W_XIAO_ESP32C6)
-static SPIClass loraSpi(0);
-OpenHopSX1262 radio = new Module(BOARD.pin_lora_nss, BOARD.pin_lora_dio1,
-                              BOARD.pin_lora_rst, BOARD.pin_lora_busy,
-                              loraSpi);
-#elif defined(BOARD_RAK4631_WISMESH_ETH) || defined(BOARD_RAK4631_USB)
-// The RAK4631 internal SX1262 uses its own nRF52 SPIM instance on
-// P1.11/P1.13/P1.12. On the Ethernet variant this also keeps global SPI free
-// for RAK13800/W5100S; the USB-only variant retains the proven radio path.
-static SPIClass loraSpi(NRF_SPIM2, 45, 43, 44);  // MISO, SCK, MOSI
-OpenHopSX1262 radio = new Module(BOARD.pin_lora_nss, BOARD.pin_lora_dio1,
-                              BOARD.pin_lora_rst, BOARD.pin_lora_busy,
-                              loraSpi);
-#else
-OpenHopSX1262 radio = new Module(BOARD.pin_lora_nss, BOARD.pin_lora_dio1,
-                              BOARD.pin_lora_rst, BOARD.pin_lora_busy);
-#endif
+// The LoRa radio is `radio` (RadioHal, see radio_hal.h); its pin map and
+// chip options come from BOARD (see boards/<name>.h).
 
 // Single instance regardless of build — on ESP32 this is the real
 // SSD1306 driver from oled_display.cpp; on nRF52 it's a no-op stub
@@ -389,66 +347,6 @@ static uint8_t cadSymNum   = 0x01;  // RADIOLIB_SX126X_CAD_ON_2_SYMB — matches
 static uint8_t cadDetPeak  = 22;    // openHop Core default for SF7-SF8
 static uint8_t cadDetMin   = 10;    // AN1200.48 recommendation
 static uint8_t cadExitMode = 0x00;  // RADIOLIB_SX126X_CAD_GOTO_STDBY
-
-// ─── Reception-in-progress guard ─────────────────────────────
-// PREAMBLE_DETECTED / HEADER_VALID latch in the chip's IRQ status while a
-// frame is being received (DIO1 only fires on terminal IRQs, so the flags
-// stay readable here; readData() clears them once the frame completes).
-// Lets the TX path defer to an ongoing reception instead of aborting it —
-// CAD cannot do that: startChannelScan() drops to standby first, and its
-// 2-symbol scan is unreliable mid-payload anyway. Parity with MeshCore
-// CustomSX1262::isReceiving(). The millis bound keeps stale flags — a
-// reception the RX path never got to consume — from wedging TX forever,
-// like MeshCore's _maxPayloadMillis.
-static uint32_t rxActivityAt = 0;
-static bool     rxHeaderSeen = false;
-
-// True while the chip reports a reception in progress. The live IRQ flags
-// are the source of truth (MeshCore CustomSX1262::isReceiving), and each
-// stage carries its own staleness bound so a stray flag cannot hold TX off:
-// a lone preamble must turn into a valid header within about one preamble +
-// header airtime, a valid header into a frame within a worst-case payload
-// airtime.
-static bool isReceivingPacket() {
-    uint32_t irq = radio.getIrqFlags();
-    bool header   = (irq & RADIOLIB_SX126X_IRQ_HEADER_VALID) != 0;
-    bool preamble = (irq & RADIOLIB_SX126X_IRQ_PREAMBLE_DETECTED) != 0;
-    uint32_t now = millis();
-
-    if (!header && rxHeaderSeen) {
-        // The header flag went away without us clearing it: the frame ended
-        // or was aborted, and the state must follow the chip.
-        rxActivityAt = 0;
-        rxHeaderSeen = false;
-        return false;
-    }
-    if (header) {
-        if (!rxHeaderSeen) { rxHeaderSeen = true; rxActivityAt = now; }
-        // Worst-case airtime of a max-size frame at current settings, padded 50%.
-        uint32_t maxMs = (uint32_t)(radio.getTimeOnAir(MAX_LORA_PAYLOAD) / 1000) * 3 / 2 + 100;
-        if (now - rxActivityAt > maxMs) {
-            radio.clearIrqFlags(RADIOLIB_SX126X_IRQ_PREAMBLE_DETECTED |
-                                RADIOLIB_SX126X_IRQ_HEADER_VALID);
-            rxActivityAt = 0;
-            rxHeaderSeen = false;
-            return false;
-        }
-        return true;
-    }
-    if (preamble) {
-        if (rxActivityAt == 0) rxActivityAt = now;
-        uint32_t preMs = (uint32_t)(radio.getTimeOnAir(1) / 1000) * 3 / 2 + 100;
-        if (now - rxActivityAt > preMs) {
-            radio.clearIrqFlags(RADIOLIB_SX126X_IRQ_PREAMBLE_DETECTED);
-            rxActivityAt = 0;
-            return false;
-        }
-        return true;
-    }
-    rxActivityAt = 0;
-    rxHeaderSeen = false;
-    return false;
-}
 
 // ─── Transport state ─────────────────────────────────────────
 static FrameParser serialParser;
@@ -650,47 +548,6 @@ static void configureStaticGpios() {
         digitalWrite(gpio.pin, gpio.level_high ? HIGH : LOW);
     }
     RFFrontEnd::begin();
-}
-
-static void rfSwitchConfigureRadio() {
-    // DIO2 + explicit RX/TX pins are independent — the Wio-SX1262 board uses
-    // both: DIO2 drives the TX path internally while RXEN (an external GPIO)
-    // gates the LNA on the RX path. Older boards (Heltec V3 / T3S3 / RAK3112)
-    // only set dio2_as_rf_switch and leave rx_pin/tx_pin == -1, so the second
-    // call becomes a no-op for them.
-    if (BOARD.rf_switch.dio2_as_rf_switch) {
-        int state = radio.setDio2AsRfSwitch(true);
-        Serial.printf("[INFO] setDio2AsRfSwitch(true) -> %d\n", state);
-    }
-    if (BOARD.rf_switch.rx_pin >= 0 || BOARD.rf_switch.tx_pin >= 0) {
-        uint32_t rx = BOARD.rf_switch.rx_pin >= 0
-                          ? (uint32_t)BOARD.rf_switch.rx_pin
-                          : RADIOLIB_NC;
-        uint32_t tx = BOARD.rf_switch.tx_pin >= 0
-                          ? (uint32_t)BOARD.rf_switch.tx_pin
-                          : RADIOLIB_NC;
-        radio.setRfSwitchPins(rx, tx);
-        Serial.printf("[INFO] setRfSwitchPins(rx=%lu tx=%lu)\n",
-                      (unsigned long)rx, (unsigned long)tx);
-    }
-}
-
-static void configureBoardRadioOptions() {
-    if (BOARD.sx126x_current_limit_ma > 0) {
-        int state = radio.setCurrentLimit(BOARD.sx126x_current_limit_ma);
-        Serial.printf("[INFO] setCurrentLimit(%d mA) -> %d\n",
-                      (int)BOARD.sx126x_current_limit_ma, state);
-    }
-
-    if (BOARD.sx126x_rx_boosted_gain) {
-        int state = radio.setRxBoostedGainMode(true);
-        Serial.printf("[INFO] setRxBoostedGainMode(true) -> %d\n", state);
-    }
-
-    if (BOARD.sx126x_register_patch) {
-        int state = radio.applyRegisterPatch08B5();
-        Serial.printf("[INFO] SX126x register patch 0x08B5 -> %d\n", state);
-    }
 }
 
 // ─── Frame output ────────────────────────────────────────────
@@ -921,9 +778,7 @@ bool applyConfig(const RadioConfig& cfg) {
     int8_t pwr = cfg.power_dbm;
     if (pwr > BOARD.max_tx_power_dbm) pwr = BOARD.max_tx_power_dbm;
     int currentLimitBefore = (int)radio.getCurrentLimit();
-    const uint8_t rampSetting = BOARD.pa_ramp_time_us == 1700
-        ? RADIOLIB_SX126X_PA_RAMP_1700U : 0;
-    state = applyOutputPowerAndRamp(radio, pwr, rampSetting);
+    state = radio.setOutputPower(pwr);
     int currentLimitAfter = (int)radio.getCurrentLimit();
     LOG_R_INFO("applyConfig board=%s fw=%s pwr_req=%d pwr=%d max=%d setOutputPower=%d ocp_before=%dmA ocp_after=%dmA",
                BOARD.name, fwVersion.c_str(), (int)cfg.power_dbm, (int)pwr,
@@ -1047,7 +902,7 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
         // untouched (standby or startReceive() here would abort the frame);
         // its terminal IRQ delivers it to the host, and the host retries the
         // TX within its LBT budget on ERR_CHANNEL_BUSY.
-        if (isReceivingPacket()) {
+        if (radio.isReceivingPacket()) {
             sendError(ERR_CHANNEL_BUSY, src);
             break;
         }
@@ -1080,7 +935,7 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
                 // Passive guard first: a latched in-progress reception
                 // is authoritative — return busy without a scan, standby,
                 // or RX restart that would abort/discard the frame.
-                if (isReceivingPacket()) {
+                if (radio.isReceivingPacket()) {
                     reception_busy = true;
                     break;
                 }
@@ -1097,21 +952,20 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
                     break;
                 }
                 uint32_t cad_t0 = millis();
-                uint16_t irq = 0;
+                RadioHal::ChannelScanState scan = RadioHal::CAD_PENDING;
                 while ((millis() - cad_t0) < CAD_TIMEOUT_MS) {
-                    irq = radio.getIrqFlags();
-                    if (irq & RADIOLIB_SX126X_IRQ_CAD_DONE) break;
+                    scan = radio.pollChannelScan();
+                    if (scan != RadioHal::CAD_PENDING) break;
                     compatWdtReset();
                     delay(2);
                 }
-                radio.clearIrqFlags(RADIOLIB_SX126X_IRQ_CAD_DONE |
-                                    RADIOLIB_SX126X_IRQ_CAD_DETECTED);
+                radio.clearChannelScanFlags();
                 dio1Flag = false;
                 // A stale RX_DONE software flag must never count as CAD
                 // completion. Only the chip's CAD_DONE flag proves the scan
                 // finished and makes a clear/busy verdict meaningful.
-                if (!(irq & RADIOLIB_SX126X_IRQ_CAD_DONE)) break;
-                bool busy = (irq & RADIOLIB_SX126X_IRQ_CAD_DETECTED) != 0;
+                if (scan == RadioHal::CAD_PENDING) break;
+                bool busy = scan == RadioHal::CAD_DETECTED;
                 if (!busy) { channel_clear = true; break; }
                 // Random backoff 50-200 ms to prevent step-locking with
                 // another sector that retried at the same time. (The old
@@ -1215,7 +1069,7 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
         // and the standby below would abort the very frame this request is
         // probing for. Answer busy without touching the radio — the frame's
         // terminal IRQ will deliver it to the host.
-        if (isReceivingPacket()) {
+        if (radio.isReceivingPacket()) {
             uint8_t result[1] = {1};
             sendFrame(CMD_CAD_RESP, result, 1, src);
             break;
@@ -1259,15 +1113,15 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
         // 500 ms easily covers a legitimate CAD scan at any SF+symNum we use.
         const uint32_t CAD_TIMEOUT_MS = 500;
         uint32_t cadStart = millis();
-        uint16_t cadIrq = 0;
+        RadioHal::ChannelScanState scan = RadioHal::CAD_PENDING;
         while ((millis() - cadStart) < CAD_TIMEOUT_MS) {
-            cadIrq = radio.getIrqFlags();
-            if (cadIrq & RADIOLIB_SX126X_IRQ_CAD_DONE) break;
+            scan = radio.pollChannelScan();
+            if (scan != RadioHal::CAD_PENDING) break;
             compatWdtReset();
             delay(1);
         }
 
-        if (!(cadIrq & RADIOLIB_SX126X_IRQ_CAD_DONE)) {
+        if (scan == RadioHal::CAD_PENDING) {
             // CAD_DONE never fired — treat as failure and clean up the chip
             // before the next request. Don't block the repeater's LBT
             // forever; reporting failure lets the host decide.
@@ -1281,11 +1135,10 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
             break;
         }
 
-        radio.clearIrqFlags(RADIOLIB_SX126X_IRQ_CAD_DONE |
-                            RADIOLIB_SX126X_IRQ_CAD_DETECTED);
+        radio.clearChannelScanFlags();
         dio1Flag = false;
         uint8_t result[1];
-        result[0] = (cadIrq & RADIOLIB_SX126X_IRQ_CAD_DETECTED) ? 1 : 0;
+        result[0] = (scan == RadioHal::CAD_DETECTED) ? 1 : 0;
         sendFrame(CMD_CAD_RESP, result, 1, src);
         // Back to RX right away: the scan parked the radio in standby, and
         // the host probes every ~200 ms for its whole LBT budget — without
@@ -1694,52 +1547,15 @@ void setup() {
     // Wi-Fi / Ethernet, returning ERR_NO_RADIO for radio commands so
     // the host can still probe the modem.
     if (BOARD.has_lora_radio) {
-        // Bring up the SPI bus for the SX1262 BEFORE radio.begin(). When
-        // BOARD.pin_lora_sck/miso/mosi are -1 the board variant's default
-        // SPI pins already match the LoRa wiring (Heltec V3, XIAO ESP32-S3
-        // for Ikoka) and we leave the bus alone. When they're set the
-        // board has remapped SPI (LilyGO T3-S3 etc.) and we must call
-        // SPI.begin() with the explicit pins or RadioLib's first SPI
-        // transfer fails.
-        if (BOARD.pin_lora_sck >= 0 || BOARD.pin_lora_miso >= 0 || BOARD.pin_lora_mosi >= 0) {
-#ifdef ARDUINO_ARCH_ESP32
-#if defined(BOARD_PHOTON_1W_XIAO_ESP32C6)
-            // Seeed XIAO ESP32-C6 Photon variant matches MeshCore's
-            // working C6 port, which uses SPIClass(0) for the LoRa bus.
-            loraSpi.begin(BOARD.pin_lora_sck, BOARD.pin_lora_miso,
-                          BOARD.pin_lora_mosi);
-#else
-            // ESP32-S3/P4 GPIO matrix: rebind SPI to specific pins
-            SPI.begin(BOARD.pin_lora_sck, BOARD.pin_lora_miso,
-                      BOARD.pin_lora_mosi, BOARD.pin_lora_nss);
-#endif
-#else
-            // nRF52 BSP: SPI peripheral has fixed pins on its selected
-            // instance. RAK4631 WisMesh uses a dedicated LoRa SPI instance;
-            // global SPI remains the W5100S Ethernet bus.
-#  if defined(BOARD_RAK4631_WISMESH_ETH) || defined(BOARD_RAK4631_USB)
-            loraSpi.begin();
-#  else
-            SPI.begin();
-#  endif
-#endif
-        }
-
         LOG_R_INFO("radio.begin nss=%d dio1=%d rst=%d busy=%d spi=(%d,%d,%d)",
                    (int)BOARD.pin_lora_nss, (int)BOARD.pin_lora_dio1,
                    (int)BOARD.pin_lora_rst, (int)BOARD.pin_lora_busy,
                    (int)BOARD.pin_lora_sck, (int)BOARD.pin_lora_miso,
                    (int)BOARD.pin_lora_mosi);
-        // RadioLib's no-argument SX1262::begin() assumes a 1.6 V TCXO.
-        // Supply the board policy during initialization so targets such as
-        // RAK3401 bring up their 1.8 V TCXO before the first radio commands.
-        const float initialTcxoVoltage = BOARD.use_dio3_tcxo
-                                             ? BOARD.tcxo_voltage
-                                             : 0.0f;
-        int state = radio.begin(434.0f, 125.0f, 9, 7,
-                                RADIOLIB_SX126X_SYNC_WORD_PRIVATE,
-                                10, 8, initialTcxoVoltage);
-        LOG_R_INFO("radio.begin (TCXO=%.1f V) -> %d", initialTcxoVoltage, state);
+        // RadioHal::begin() brings up the radio SPI bus when the board
+        // remaps it, then initialises the chip with the board's TCXO.
+        int state = radio.begin();
+        LOG_R_INFO("radio.begin (TCXO=%.1f V) -> %d", RadioHal::bootTcxoVoltage(), state);
         if (state != RADIOLIB_ERR_NONE) {
             oled.showError("SX1262 init fail!");
             while (Serial.availableForWrite() == 0) delay(10);
@@ -1747,8 +1563,8 @@ void setup() {
             Serial.println("[BOOT] SX1262 init failed — continuing with Wi-Fi/config portal only");
             radioReady = false;
         } else {
-        rfSwitchConfigureRadio();
-        configureBoardRadioOptions();
+        radio.rfSwitchConfigureRadio();
+        radio.configureBoardRadioOptions();
 
         if (!applyConfig(currentConfig)) {
             oled.showError("Config fail!");
@@ -1936,7 +1752,7 @@ void maybeResetAgc() {
     conditions.postTxQuietMs = AgcMaintenance::STATION_POST_TX_QUIET_MS;
     if (!AgcMaintenance::shouldAttempt(
             agcMaintenanceSchedule, conditions,
-            []() { return isReceivingPacket() || dio1Flag; })) return;
+            []() { return radio.isReceivingPacket() || dio1Flag; })) return;
 
     // SetSleep is valid only from SX126x standby. Bypass the external LNA,
     // enter radio standby explicitly, then let RadioLib perform its warm-sleep
