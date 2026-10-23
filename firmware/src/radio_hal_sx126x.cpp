@@ -27,6 +27,18 @@ uint8_t paRampSetting(uint16_t us) {
     }
 }
 
+const uint32_t kSubGhzBandwidthsHz[] = {
+    7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000,
+};
+
+// Limits match RadioLib's own checks for the SX1262 (SX1262::setFrequency,
+// SX1262::setOutputPower, SX126x::setSpreadingFactor / setCodingRate).
+const RadioBandInfo kBands[] = {
+    { RadioBand::SubGhz, 150000000UL, 960000000UL, -9, 22, 5, 12, 4, 8,
+      kSubGhzBandwidthsHz,
+      (uint8_t)(sizeof(kSubGhzBandwidthsHz) / sizeof(kSubGhzBandwidthsHz[0])) },
+};
+
 class OpenHopSX1262 : public SX1262 {
 public:
     using SX1262::SX1262;
@@ -181,14 +193,43 @@ RadioConfig RadioHal::defaultConfig() {
     return cfg;
 }
 
+// ─── Capabilities ───────────────────────────────────────────
+uint8_t RadioHal::getChipId() { return RADIO_CHIP_SX1262; }
+
+uint8_t RadioHal::getFeatures() {
+    return RADIO_FEATURE_CAD | RADIO_FEATURE_CAD_TUNING |
+           RADIO_FEATURE_RX_GUARD | RADIO_FEATURE_AGC_RESET;
+}
+
+uint8_t RadioHal::getBands(const RadioBandInfo*& bands) {
+    bands = kBands;
+    return (uint8_t)(sizeof(kBands) / sizeof(kBands[0]));
+}
+
+bool RadioHal::acceptsBandwidth(RadioBand band, uint32_t bwHz) {
+    if (band != RadioBand::SubGhz) return false;
+    // Same acceptance test as SX126x::setBandwidth(), so every value it
+    // takes is accepted here too (it buckets bw/2 rather than matching
+    // exact values).
+    const float bw = bwHz / 1000.0f;
+    if (bw < 0.0f || bw > 510.0f) return false;
+    switch ((uint8_t)(bw / 2 + 0.01f)) {
+    case 3: case 5: case 7: case 10: case 15: case 20:
+    case 31: case 62: case 125: case 250:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // ─── Configuration ──────────────────────────────────────────
 int16_t RadioHal::standby() { return chip.standby(); }
-int16_t RadioHal::setFrequency(float freqMHz) { return chip.setFrequency(freqMHz); }
+int16_t RadioHal::setChipFrequency(float freqMHz) { return chip.setFrequency(freqMHz); }
 int16_t RadioHal::setBandwidth(float bwKHz) { return chip.setBandwidth(bwKHz); }
 int16_t RadioHal::setSpreadingFactor(uint8_t sf) { return chip.setSpreadingFactor(sf); }
 int16_t RadioHal::setCodingRate(uint8_t cr) { return chip.setCodingRate(cr); }
 
-int16_t RadioHal::setOutputPower(int8_t power) {
+int16_t RadioHal::setChipOutputPower(int8_t power) {
     return applyOutputPowerAndRamp(chip, power, paRampSetting(BOARD.pa_ramp_time_us));
 }
 

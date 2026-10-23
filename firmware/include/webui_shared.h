@@ -122,9 +122,12 @@ struct RadioModel {
     uint32_t bandwidthHz = 0;
     uint8_t spreadingFactor = 0;
     uint8_t codingRate = 0;
-    int8_t txPowerDbm = 0;
+    int8_t txPowerDbm = 0;           // as requested by the host
+    int8_t txPowerAppliedDbm = 0;    // after the band's ceiling
     uint8_t syncword = 0;
     uint16_t preambleLength = 0;
+    std::string chip;                // e.g. "SX1262"
+    std::string band;                // "subghz" or "2g4"
 };
 
 struct CountersModel {

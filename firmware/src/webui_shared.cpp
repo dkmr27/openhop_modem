@@ -282,11 +282,14 @@ std::string renderStatsPage(const Model& m) {
     if (m.capabilities.radio && m.radio.available) {
         body += "<h3>Radio</h3><div class='grid'>";
         appendKv(body, "State", htmlEscape(m.radio.state));
+        if (!m.radio.chip.empty()) appendKv(body, "Chip", htmlEscape(m.radio.chip));
+        if (!m.radio.band.empty()) appendKv(body, "Band", m.radio.band == "2g4" ? "2.4 GHz" : "Sub-GHz");
         appendKv(body, "Frequency", fixed(m.radio.frequencyHz / 1000000.0, 3) + " MHz");
         appendKv(body, "Bandwidth", fixed(m.radio.bandwidthHz / 1000.0, 1) + " kHz");
         appendKv(body, "Spreading factor", "SF" + number(m.radio.spreadingFactor));
         appendKv(body, "Coding rate", "4/" + number(m.radio.codingRate));
         appendKv(body, "TX power", number(m.radio.txPowerDbm) + " dBm");
+        if (m.radio.txPowerAppliedDbm != m.radio.txPowerDbm) appendKv(body, "TX power applied", number(m.radio.txPowerAppliedDbm) + " dBm");
         appendKv(body, "Syncword", hexByte(m.radio.syncword));
         appendKv(body, "Preamble", number(m.radio.preambleLength));
         body += "</div>";
@@ -315,7 +318,7 @@ std::string renderSystemJson(const Model& m) {
 }
 
 std::string renderRadioJson(const Model& m) {
-    std::string out = "{\"state\":" + quote(m.radio.state) + ",\"standby\":" + boolean(m.radio.standby) + ",\"auto_cad_enabled\":" + boolean(m.radio.autoCadEnabled) + ",\"frequency_hz\":" + number(m.radio.frequencyHz) + ",\"frequency_mhz\":" + fixed(m.radio.frequencyHz / 1000000.0, 3) + ",\"bandwidth_hz\":" + number(m.radio.bandwidthHz) + ",\"bandwidth_khz\":" + fixed(m.radio.bandwidthHz / 1000.0, 1) + ",\"spreading_factor\":" + number(m.radio.spreadingFactor) + ",\"coding_rate\":" + number(m.radio.codingRate) + ",\"tx_power_dbm\":" + number(m.radio.txPowerDbm) + ",\"syncword\":" + quote(hexByte(m.radio.syncword)) + ",\"syncword_value\":" + number(m.radio.syncword) + ",\"preamble_len\":" + number(m.radio.preambleLength);
+    std::string out = "{\"state\":" + quote(m.radio.state) + ",\"standby\":" + boolean(m.radio.standby) + ",\"auto_cad_enabled\":" + boolean(m.radio.autoCadEnabled) + ",\"frequency_hz\":" + number(m.radio.frequencyHz) + ",\"frequency_mhz\":" + fixed(m.radio.frequencyHz / 1000000.0, 3) + ",\"bandwidth_hz\":" + number(m.radio.bandwidthHz) + ",\"bandwidth_khz\":" + fixed(m.radio.bandwidthHz / 1000.0, 1) + ",\"spreading_factor\":" + number(m.radio.spreadingFactor) + ",\"coding_rate\":" + number(m.radio.codingRate) + ",\"tx_power_dbm\":" + number(m.radio.txPowerDbm) + ",\"syncword\":" + quote(hexByte(m.radio.syncword)) + ",\"syncword_value\":" + number(m.radio.syncword) + ",\"preamble_len\":" + number(m.radio.preambleLength) + ",\"tx_power_applied_dbm\":" + number(m.radio.txPowerAppliedDbm) + ",\"chip\":" + quote(m.radio.chip) + ",\"band\":" + quote(m.radio.band);
     if (m.capabilities.heltecV43Controls) out += ",\"heltec_v43_external_lna_enabled\":" + boolean(m.config.heltecV43ExternalLnaEnabled) + ",\"heltec_v43_fem_lna_bypassed\":" + boolean(m.config.heltecV43FemLnaBypassed) + ",\"agc_reset_interval_sec\":" + number(m.config.agcResetIntervalSec);
     return out + "}";
 }

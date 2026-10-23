@@ -9,6 +9,10 @@
 //        / CHUNK / VERIFY / APPLY / ABORT). Wire format and existing
 //        CMD_* values unchanged — pre-v0.7 hosts work against v0.7
 //        firmware and vice versa, they just skip the new commands.
+// v0.8 — multi-chip radios: CMD_GET_RADIO_INFO / CMD_RADIO_INFO_RESP.
+//        SET_CONFIG is validated against the chip and board before the
+//        radio is touched; a rejected config leaves the previous one
+//        running. Wire format and existing CMD_* values unchanged.
 // =============================================================
 #pragma once
 
@@ -21,6 +25,7 @@
 #define CMD_TX_REQUEST      0x01    // Send LoRa packet (payload = raw bytes)
 #define CMD_SET_CONFIG      0x10    // Set radio parameters
 #define CMD_GET_CONFIG      0x11    // Request current config
+#define CMD_GET_RADIO_INFO  0x14    // v0.8 — Request chip, bands and limits
 #define CMD_STATUS_REQ      0x20    // Request status
 #define CMD_NOISE_REQ       0x22    // Request noise floor value
 #define CMD_CAD_REQUEST     0x30    // Perform CAD (Listen Before Talk)
@@ -51,6 +56,7 @@
 #define CMD_TX_FAIL         0x03    // TX failed
 #define CMD_RX_PACKET       0x04    // Received LoRa packet
 #define CMD_CONFIG_RESP     0x12    // Config response
+#define CMD_RADIO_INFO_RESP 0x15    // v0.8 — Radio info (layout below)
 #define CMD_STATUS_RESP     0x21    // Status response
 #define CMD_NOISE_RESP      0x23    // Noise floor value (int16 LE, dBm × 10)
 #define CMD_CAD_RESP        0x32    // CAD result (1 byte: 0=clear, 1=busy)
@@ -127,6 +133,31 @@
 //  │ FREQ_HZ  │  BW_HZ │ SF │ CR │ POWER │ SYNCWORD │PREAMBL │
 //  │  4B LE   │ 4B LE  │ 1B │ 1B │  1B   │   2B LE  │  1B    │
 //  └──────────┴────────┴────┴────┴───────┴──────────┴────────┘
+//
+//  SET_CONFIG is checked before the radio is touched: the band must be one
+//  the chip and board support, and freq/BW/SF/CR must be valid for it.
+//  POWER above the band's ceiling is clamped; below the chip minimum is
+//  rejected. CONFIG_RESP echoes the requested values; the power actually
+//  applied is reported in RADIO_INFO_RESP.
+//
+// ─── RADIO_INFO_RESP payload (v0.8, variable, little-endian) ─
+//
+//  version(1)=1 | chip_id(1) | features(1) | current_band(1)
+//  | applied_power_dbm(1, int8) | band_count(1)
+//  | band_count × { band(1) | freq_min_hz(4) | freq_max_hz(4)
+//                  | power_min_dbm(1, int8) | power_max_dbm(1, int8)
+//                  | sf_min(1) | sf_max(1) | cr_min(1) | cr_max(1)
+//                  | bw_count(1) | bw_count × bw_hz(4) }
+//  | name_len(1) | chip_name(name_len, ASCII)
+//
+//  chip_id: 1=SX1262 2=LR1121 3=SX1280 4=LR2021
+//  band:    0=sub-GHz 1=2.4 GHz (current_band is the band of the
+//           current config)
+//  features bits: 0=CAD 1=CAD tuning (peak/min) 2=RX-in-progress guard
+//                 3=AGC reset
+//  power_max_dbm is the effective ceiling: the lower of the chip's limit
+//  and the board's. Only bands usable on this board are listed. bw_hz
+//  lists the standard bandwidths for the band.
 //
 // ─── SET_WIFI payload (variable) ────────────────────────────
 //

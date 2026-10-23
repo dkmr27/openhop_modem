@@ -407,6 +407,8 @@ Snapshot capture() {
     snap.hasBoardFan = BOARD.thermistor.fan_pin >= 0;
     snap.boardFanEnabled = TBeam1WFan::isEnabled();
     snap.radio = currentConfig;
+    snap.radioChip = radio.getChipName();
+    snap.radioAppliedPowerDbm = radio.getAppliedOutputPower();
     snap.firmwareVersion = fwVersion;
     snap.radioStandby = radioStandby;
     snap.autoCadEnabled = autoCadEnabled;
@@ -748,6 +750,10 @@ static bool parseSetWifi(const uint8_t* p, uint16_t len, WifiManager::Config& ou
 
 // ─── Radio configuration ────────────────────────────────────
 bool applyConfig(const RadioConfig& cfg) {
+    // Reject configs the chip or board can't run before touching the radio,
+    // so a bad request leaves the current config running.
+    if (!radio.isConfigSupported(cfg)) return false;
+
     // Invalidate before the first mutation: a partial apply must prohibit TX.
     radioTxReady = false;
     int state = radio.standby();
@@ -765,16 +771,18 @@ bool applyConfig(const RadioConfig& cfg) {
     state = radio.setCodingRate(cfg.cr);
     if (state != RADIOLIB_ERR_NONE) return false;
 
-    // Board-specific RadioLib/SX1262 command-power ceiling. External PA gain
-    // is antenna-side output and must not be passed to setOutputPower().
-    int8_t pwr = cfg.power_dbm;
-    if (pwr > BOARD.max_tx_power_dbm) pwr = BOARD.max_tx_power_dbm;
+    // Chip drive level, clamped by RadioHal to the band's ceiling: the lower
+    // of the chip's limit and the board's (max_tx_power_dbm for sub-GHz,
+    // max_tx_power_2g4_dbm for 2.4 GHz). External PA gain is antenna-side
+    // output and must not be passed to setOutputPower().
+    const int8_t maxPwr = radio.getMaxOutputPower(cfg.freq_hz);
     int currentLimitBefore = (int)radio.getCurrentLimit();
-    state = radio.setOutputPower(pwr);
+    state = radio.setOutputPower(cfg.power_dbm);
+    const int8_t pwr = radio.getAppliedOutputPower();
     int currentLimitAfter = (int)radio.getCurrentLimit();
     LOG_R_INFO("applyConfig board=%s fw=%s pwr_req=%d pwr=%d max=%d setOutputPower=%d ocp_before=%dmA ocp_after=%dmA",
                BOARD.name, fwVersion.c_str(), (int)cfg.power_dbm, (int)pwr,
-               (int)BOARD.max_tx_power_dbm, state, currentLimitBefore,
+               (int)maxPwr, state, currentLimitBefore,
                currentLimitAfter);
     if (state != RADIOLIB_ERR_NONE) return false;
 
@@ -871,6 +879,7 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
         case CMD_TX_REQUEST:  case CMD_SET_CONFIG:  case CMD_GET_CONFIG:
         case CMD_STATUS_REQ:  case CMD_NOISE_REQ:   case CMD_CAD_REQUEST:
         case CMD_RX_START:    case CMD_SET_CAD_PARAMS:
+        case CMD_GET_RADIO_INFO:
             sendError(ERR_NO_RADIO, src);
             return;
         default:
@@ -1173,16 +1182,20 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
             sendError(ERR_INVALID_CONFIG, src);
             break;
         }
-        memcpy(&currentConfig, payload, sizeof(RadioConfig));
+        // Only an accepted config replaces currentConfig; a rejected one
+        // leaves the previous config in place for GET_CONFIG and RESUME.
+        RadioConfig requested;
+        memcpy(&requested, payload, sizeof(RadioConfig));
         LOG_R_INFO("SET_CONFIG recv src=%u board=%s fw=%s freq=%lu bw=%lu sf=%u cr=%u pwr_req=%d sync=0x%04X pre=%u",
                    (unsigned)src, BOARD.name, fwVersion.c_str(),
-                   (unsigned long)currentConfig.freq_hz,
-                   (unsigned long)currentConfig.bandwidth_hz,
-                   (unsigned)currentConfig.sf, (unsigned)currentConfig.cr,
-                   (int)currentConfig.power_dbm,
-                   (unsigned)currentConfig.syncword,
-                   (unsigned)currentConfig.preamble_len);
-        if (applyConfig(currentConfig)) {
+                   (unsigned long)requested.freq_hz,
+                   (unsigned long)requested.bandwidth_hz,
+                   (unsigned)requested.sf, (unsigned)requested.cr,
+                   (int)requested.power_dbm,
+                   (unsigned)requested.syncword,
+                   (unsigned)requested.preamble_len);
+        if (applyConfig(requested)) {
+            currentConfig = requested;
             sendFrame(CMD_CONFIG_RESP, (uint8_t*)&currentConfig, sizeof(RadioConfig), src);
             startReceive();
         } else {
@@ -1193,6 +1206,28 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
 
     case CMD_GET_CONFIG: {
         sendFrame(CMD_CONFIG_RESP, (uint8_t*)&currentConfig, sizeof(RadioConfig), src);
+        break;
+    }
+
+    case CMD_GET_RADIO_INFO: {
+        const RadioBandInfo* bands = nullptr;
+        const uint8_t bandCount = RadioHal::getBands(bands);
+        int8_t ceilings[4];
+        const uint8_t n = bandCount < 4 ? bandCount : 4;
+        for (uint8_t i = 0; i < n; ++i) {
+            ceilings[i] = radioPowerCeiling(bands[i].powerMaxDbm,
+                                            RadioHal::boardCeiling(bands[i].band));
+        }
+        uint8_t buf[MAX_LORA_PAYLOAD];
+        const size_t len = encodeRadioInfo(
+            buf, sizeof(buf), RadioHal::getChipId(), RadioHal::getFeatures(),
+            radioBandFor(currentConfig.freq_hz), radio.getAppliedOutputPower(),
+            bands, ceilings, n, radio.getChipName());
+        if (len == 0) {
+            sendError(ERR_INVALID_CMD, src);
+            break;
+        }
+        sendFrame(CMD_RADIO_INFO_RESP, buf, (uint16_t)len, src);
         break;
     }
 

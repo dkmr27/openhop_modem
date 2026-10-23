@@ -12,6 +12,8 @@ namespace RuntimeStats {
 struct Snapshot {
     StatusResp status;
     RadioConfig radio;
+    const char* radioChip;          // e.g. "SX1262"
+    int8_t radioAppliedPowerDbm;    // drive level actually set (after clamping)
     String firmwareVersion;
     bool radioStandby;
     bool autoCadEnabled;

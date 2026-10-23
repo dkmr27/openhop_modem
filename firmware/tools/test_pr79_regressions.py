@@ -49,7 +49,8 @@ struct FakeRadio {int calls=0,fail=0; int step(){assert(!radioTxReady); return +
 int standby(){return step();} int setFrequency(float){return step();}
 int setBandwidth(float){return step();} int setSpreadingFactor(int){return step();}
 int setCodingRate(int){return step();} int setOutputPower(int){return step();}
-int getCurrentLimit(){return 140;}
+int getCurrentLimit(){return 140;} int getAppliedOutputPower(){return 22;}
+int getMaxOutputPower(uint32_t){return 22;} bool isConfigSupported(const RadioConfig&){return true;}
 int setSyncWord(int){return step();} int setPreambleLength(int){return step();}
 int explicitHeader(){return step();} int setCRC(int){return step();}
 int invertIQ(bool){return step();} int autoLDRO(){return step();}} radio;

@@ -49,6 +49,7 @@ RouteAction classifyRoute(HttpRequest::Method method, const char* route) {
 #include "w5100s_ethernet_transport.h"
 #include "w5100s_bounded_rx.h"
 #include "webui_shared.h"
+#include "radio_band.h"
 
 #include <Arduino.h>
 #include <RAK13800_W5100S.h>
@@ -241,6 +242,9 @@ WebUiShared::Model buildModel() {
     model.radio.txPowerDbm = runtime.radio.power_dbm;
     model.radio.syncword = runtime.radio.syncword;
     model.radio.preambleLength = runtime.radio.preamble_len;
+    model.radio.txPowerAppliedDbm = runtime.radioAppliedPowerDbm;
+    model.radio.chip = runtime.radioChip ? runtime.radioChip : "";
+    model.radio.band = radioBandName(radioBandFor(runtime.radio.freq_hz));
     model.counters.rxPackets = runtime.status.rx_count;
     model.counters.txPackets = runtime.status.tx_count;
     model.counters.crcErrors = runtime.status.crc_errors;

@@ -84,10 +84,18 @@ Station G3 example:
   "syncword": "0x3444",
   "syncword_value": 13380,
   "preamble_len": 17,
+  "tx_power_applied_dbm": 19,
+  "chip": "SX1262",
+  "band": "subghz",
   "pa_high_power_enabled": false,
   "station_g3_external_lna_enabled": true
 }
 ```
+
+`tx_power_dbm` is the power the host requested; `tx_power_applied_dbm` is the
+chip drive level actually set after the band's ceiling (the lower of the chip's
+limit and the board's). `chip` names the radio chip and `band` is `subghz` or
+`2g4` for the current frequency.
 
 `pa_high_power_enabled` and `station_g3_external_lna_enabled` are Station G3-only.
 The LNA setting controls receive mode; firmware always bypasses the LNA before TX.

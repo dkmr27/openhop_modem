@@ -14,6 +14,7 @@
 #include "tcp_server.h"
 #include "wifi_manager.h"
 #include "webui_shared.h"
+#include "radio_band.h"
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -325,6 +326,9 @@ static WebUiShared::Model buildWebUiModel() {
     model.radio.txPowerDbm = snap.radio.power_dbm;
     model.radio.syncword = snap.radio.syncword;
     model.radio.preambleLength = snap.radio.preamble_len;
+    model.radio.txPowerAppliedDbm = snap.radioAppliedPowerDbm;
+    model.radio.chip = snap.radioChip ? snap.radioChip : "";
+    model.radio.band = radioBandName(radioBandFor(snap.radio.freq_hz));
     model.counters.rxPackets = snap.status.rx_count;
     model.counters.txPackets = snap.status.tx_count;
     model.counters.crcErrors = snap.status.crc_errors;
@@ -491,6 +495,12 @@ static String buildRadioJson(const RuntimeStats::Snapshot& snap) {
     body += String(snap.radio.syncword);
     body += F(",\"preamble_len\":");
     body += String(snap.radio.preamble_len);
+    body += F(",\"tx_power_applied_dbm\":");
+    body += String(snap.radioAppliedPowerDbm);
+    body += F(",\"chip\":");
+    body += jsonQuote(snap.radioChip ? snap.radioChip : "");
+    body += F(",\"band\":");
+    body += jsonQuote(radioBandName(radioBandFor(snap.radio.freq_hz)));
     if (RFFrontEnd::hasPaModeControl()) {
         body += F(",\"pa_high_power_enabled\":");
         body += boolJson(RFFrontEnd::isPaHighPowerEnabled());

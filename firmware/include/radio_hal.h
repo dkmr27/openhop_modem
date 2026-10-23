@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <RadioLib.h>
 #include "board_config.h"   // board header first: it picks RADIO_<chip>
+#include "radio_band.h"
 
 static_assert(RF_SWITCH_PIN_NC == RADIOLIB_NC,
               "RF_SWITCH_PIN_NC must match RadioLib's not-connected pin value");
@@ -52,14 +53,34 @@ public:
     // The settings applied at boot: BOARD.boot_config, else defaultConfig().
     static RadioConfig bootConfig();
 
+    // ─── Capabilities ───────────────────────────────────────
+    static uint8_t getChipId();       // RadioChipId
+    static uint8_t getFeatures();     // RadioFeature bits
+    // The chip's band table (what the chip can do, before board limits).
+    static uint8_t getBands(const RadioBandInfo*& bands);
+    // The board's drive ceiling for a band; RADIO_POWER_NONE = band unusable.
+    static int8_t boardCeiling(RadioBand band);
+    // Effective drive ceiling at a frequency: min(chip, board), or
+    // RADIO_POWER_NONE if the chip or board can't use that band.
+    static int8_t getMaxOutputPower(uint32_t freqHz);
+    // True if every field of `cfg` is valid for this chip and board, so
+    // applying it can't leave the radio half-configured. Power above the
+    // ceiling is allowed (it is clamped); below the chip minimum is not.
+    static bool isConfigSupported(const RadioConfig& cfg);
+
     // ─── Configuration ──────────────────────────────────────
     int16_t standby();
+    // When the frequency moves to another band, re-applies the requested
+    // power under that band's ceiling.
     int16_t setFrequency(float freqMHz);
     int16_t setBandwidth(float bwKHz);
     int16_t setSpreadingFactor(uint8_t sf);
     int16_t setCodingRate(uint8_t cr);
-    // Sets output power and then the board's PA ramp time, if it has one.
+    // Requests a drive level. It is clamped to the current band's ceiling
+    // (getMaxOutputPower) and then the board's PA ramp time is applied.
     int16_t setOutputPower(int8_t power);
+    // Drive level actually set by the last successful setOutputPower().
+    int8_t  getAppliedOutputPower() const { return appliedPowerDbm_; }
     float   getCurrentLimit();
     int16_t setSyncWord(uint8_t syncWord);
     int16_t setPreambleLength(uint16_t preambleLength);
@@ -98,8 +119,18 @@ public:
     int16_t resetAGC();
 
 private:
+    // Chip-specific pieces behind the shared logic in radio_hal_common.cpp.
+    static bool acceptsBandwidth(RadioBand band, uint32_t bwHz);
+    int16_t setChipFrequency(float freqMHz);
+    int16_t setChipOutputPower(int8_t power);
+    int16_t applyOutputPower();
+
     uint32_t rxActivityAt_ = 0;
     bool     rxHeaderSeen_ = false;
+    uint32_t freqHz_ = 0;
+    int8_t   requestedPowerDbm_ = 0;
+    int8_t   appliedPowerDbm_ = 0;
+    bool     powerRequested_ = false;
 };
 
 extern RadioHal radio;

@@ -46,6 +46,8 @@ CMD_RX_PACKET = 0x04
 CMD_SET_CONFIG = 0x10
 CMD_GET_CONFIG = 0x11
 CMD_CONFIG_RESP = 0x12
+CMD_GET_RADIO_INFO = 0x14
+CMD_RADIO_INFO_RESP = 0x15
 CMD_STATUS_REQ = 0x20
 CMD_STATUS_RESP = 0x21
 CMD_NOISE_REQ = 0x22
@@ -84,6 +86,9 @@ STATUS_RESP = struct.Struct("<IIIIhhhbBH")    # StatusResp, 26 bytes
 DEBUG_RESP = struct.Struct("<BIIII")          # CMD_DEBUG_RESP, 17 bytes
 
 MAX_LORA_PAYLOAD = 255
+CHIP_NAMES = {1: "SX1262", 2: "LR1121", 3: "SX1280", 4: "LR2021"}
+BAND_NAMES = {0: "subg", 1: "2g4"}
+FEATURE_NAMES = ("CAD", "CAD tuning", "RX guard", "AGC reset")
 BENCH_POWER_DBM = -9
 TEST_MAGIC = b"OHT"                            # marks our own test packets
 
@@ -349,6 +354,10 @@ class Modem:
     def resume(self):
         return self.request(CMD_RADIO_RESUME, b"", {CMD_RADIO_RESUME_RESP}, timeout=3)[1][0] == 0
 
+    def radio_info(self):
+        """CMD_GET_RADIO_INFO (protocol v0.8+), decoded into a dict."""
+        return decode_radio_info(self.request(CMD_GET_RADIO_INFO, b"", {CMD_RADIO_INFO_RESP})[1])
+
     def cad(self):
         """Channel activity detection: True = busy, False = clear."""
         return self.request(CMD_CAD_REQUEST, b"", {CMD_CAD_RESP}, timeout=2)[1][0] != 0
@@ -363,6 +372,24 @@ class Modem:
 def unpack_config(p):
     f = RADIO_CONFIG.unpack(p[:RADIO_CONFIG.size])
     return dict(zip(("freq_hz", "bandwidth_hz", "sf", "cr", "power_dbm", "syncword", "preamble_len"), f))
+
+
+def decode_radio_info(p):
+    ver, chip, feat, cur_band, applied, nbands = struct.unpack("<BBBBbB", p[:6])
+    i = 6
+    bands = []
+    for _ in range(nbands):
+        band, fmin, fmax, pmin, pmax, sfmin, sfmax, crmin, crmax, nbw = struct.unpack("<BIIbbBBBBB", p[i:i + 16])
+        i += 16
+        bws = list(struct.unpack(f"<{nbw}I", p[i:i + 4 * nbw]))
+        i += 4 * nbw
+        bands.append(dict(band=BAND_NAMES.get(band, band), freq_min_hz=fmin, freq_max_hz=fmax,
+                          power_min_dbm=pmin, power_max_dbm=pmax, sf=[sfmin, sfmax],
+                          cr=[crmin, crmax], bandwidths_hz=bws))
+    name = p[i + 1:i + 1 + p[i]].decode(errors="replace")
+    return dict(version=ver, chip_id=chip, chip=CHIP_NAMES.get(chip, name or str(chip)), chip_name=name,
+                features=[n for b, n in enumerate(FEATURE_NAMES) if feat & (1 << b)],
+                current_band=BAND_NAMES.get(cur_band, cur_band), applied_power_dbm=applied, bands=bands)
 
 
 def fmt_config(c):
@@ -422,6 +449,16 @@ def cmd_info(m, args):
         print(f"Noise:    {m.noise_floor():.1f} dBm")
     except ModemError as exc:
         print(f"Radio:    {exc}")
+    try:
+        ri = m.radio_info()
+        print(f"Chip:     {ri['chip']}  features: {', '.join(ri['features']) or 'none'}  "
+              f"current band {ri['current_band']}  applied power {ri['applied_power_dbm']} dBm")
+        for b in ri["bands"]:
+            print(f"  Band {b['band']}: {b['freq_min_hz'] / 1e6:g}-{b['freq_max_hz'] / 1e6:g} MHz  "
+                  f"power {b['power_min_dbm']}..{b['power_max_dbm']} dBm  SF{b['sf'][0]}-{b['sf'][1]}  "
+                  f"CR 4/{b['cr'][0]}-4/{b['cr'][1]}  BW {', '.join(f'{x / 1e3:g}' for x in b['bandwidths_hz'])} kHz")
+    except ModemError as exc:
+        print(f"Chip:     radio info not available ({exc})")
     d = m.debug()
     print(f"Debug:    reset_reason {d['reset_reason']}  heap {d['free_heap']} (min {d['min_free_heap']})  "
           f"last loop {d['last_loop_us']} us")
@@ -518,6 +555,14 @@ def run_smoke(m, args, rep):
             print(f"  [INFO] {name}: {result}")
         else:
             rep.check(f"reject {name}", result != "accepted", result)
+    # v0.8+: a rejected SET_CONFIG must leave the previous config running,
+    # so GET_CONFIG is unchanged and TX works without reconfiguring.
+    try:
+        kept = m.get_config() == back
+        m.transmit(test_payload(1, 16))
+        rep.check("rejected config keeps previous", kept, "GET_CONFIG unchanged, TX ok" if kept else "GET_CONFIG changed")
+    except ModemError as exc:
+        rep.check("rejected config keeps previous", False, str(exc))
     try:
         m.set_config(cfg)
         rep.check("recovers after rejects", True)
@@ -572,6 +617,51 @@ def run_smoke(m, args, rep):
     st = m.status()
     rep.data["status"] = st
     rep.check("TX counter advanced", st["tx_count"] >= len(air), f"tx_count {st['tx_count']}")
+
+    run_power_checks(m, args, rep, cfg)
+
+
+def run_power_checks(m, args, rep, cfg):
+    """Radio info, per-band power clamping and the band switch (protocol v0.8+).
+
+    Only SET_CONFIG and RADIO_INFO are used here - nothing transmits - and
+    the test preset at bench power is restored at the end.
+    """
+    try:
+        ri = m.radio_info()
+    except ModemError as exc:
+        rep.check("GET_RADIO_INFO", False, str(exc))
+        return
+    rep.data["radio_info"] = ri
+    rep.check("GET_RADIO_INFO", ri["version"] >= 1 and ri["bands"],
+              f"{ri['chip']}, bands {[b['band'] for b in ri['bands']]}, features {ri['features']}")
+    try:
+        # Each band in turn at 22 dBm requested: the applied level must be
+        # that band's ceiling or 22, whichever is lower. Going sub-GHz then
+        # 2.4 GHz is the band switch that must never carry a sub-GHz drive
+        # level onto the 2.4 GHz path.
+        for b in sorted(ri["bands"], key=lambda b: b["band"] != "subg"):
+            want = min(22, b["power_max_dbm"])
+            m.set_config(dict(PRESETS[b["band"]], power_dbm=22))
+            got = m.radio_info()["applied_power_dbm"]
+            rep.check(f"{b['band']} 22 dBm request applies {want}", got == want, f"applied {got} dBm")
+            over = b["power_max_dbm"] + 8
+            if over <= 127:
+                m.set_config(dict(PRESETS[b["band"]], power_dbm=over))
+                got = m.radio_info()["applied_power_dbm"]
+                rep.check(f"{b['band']} over-ceiling request clamps", got == b["power_max_dbm"],
+                          f"requested {over}, applied {got} dBm")
+            low = b["power_min_dbm"] - 1
+            try:
+                m.set_config(dict(PRESETS[b["band"]], power_dbm=low))
+                result = "accepted"
+            except ModemError as exc:
+                result = str(exc)
+            rep.check(f"{b['band']} below chip minimum rejected", result != "accepted", f"{low} dBm: {result}")
+    except ModemError as exc:
+        rep.check("power checks", False, str(exc))
+    finally:
+        m.set_config(cfg)
 
 
 def cmd_smoke(m, args):
