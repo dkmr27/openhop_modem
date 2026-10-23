@@ -1315,6 +1315,14 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
         // it survives modem reboot independent of the controller.
         if (len < 1) { sendError(ERR_INVALID_CMD, src); break; }
         bool on = payload[0] != 0;
+        if (on && !(RadioHal::getFeatures() & RADIO_FEATURE_CAD)) {
+            // No CAD on this chip yet: refuse rather than let every TX fail
+            // its channel check.
+            LOG_R_WARN("auto-CAD refused: %s has no CAD support", radio.getChipName());
+            uint8_t refused = 1;
+            sendFrame(CMD_SET_AUTO_CAD_RESP, &refused, 1, src);
+            break;
+        }
         autoCadEnabled = on;
 #if defined(BOARD_HELTEC_T114)
         NodeState::setAutoCad(on);

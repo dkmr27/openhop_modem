@@ -117,10 +117,14 @@ def build_frame(cmd, payload=b""):
 
 
 def lora_time_on_air_us(cfg, payload_len):
-    """Semtech LoRa time on air: explicit header, CRC on, auto LDRO."""
+    """Semtech LoRa time on air: explicit header, CRC on, auto LDRO.
+
+    LDRO follows RadioLib's auto rule: on when a symbol lasts 16 ms or more,
+    and at 2.4 GHz also for SF > 10 (LR11x0 does this to match the SX128x).
+    """
     sf, bw = cfg["sf"], cfg["bandwidth_hz"]
     t_sym = (2 ** sf) / bw
-    de = 1 if t_sym > 0.016 else 0
+    de = 1 if t_sym >= 0.016 or (cfg["freq_hz"] >= 1_000_000_000 and sf > 10) else 0
     n_pre = cfg["preamble_len"] + (6.25 if sf < 7 else 4.25)
     num = 8 * payload_len - 4 * sf + 28 + 16 - 0
     if sf < 7:
@@ -131,15 +135,35 @@ def lora_time_on_air_us(cfg, payload_len):
 
 
 # ─── Transports ──────────────────────────────────────────────────────────
+# USB VIDs whose DTR/RTS lines can reset the board: USB-UART bridges wired
+# to ESP32 EN/BOOT (CP210x, CH34x, FTDI, Prolific) and ESP32 native USB.
+RESET_ON_DTR_VIDS = {0x10C4, 0x1A86, 0x0403, 0x067B, 0x303A}
+
+
+def want_dtr(port, mode):
+    """DTR high for native-USB boards (nRF52 TinyUSB only sends once the
+    host raises DTR); low where DTR/RTS are wired to reset the chip."""
+    if mode != "auto":
+        return mode == "on"
+    try:
+        from serial.tools import list_ports
+        for p in list_ports.comports():
+            if p.device == port and p.vid is not None:
+                return p.vid not in RESET_ON_DTR_VIDS
+    except Exception:
+        pass
+    return False
+
+
 class SerialTransport:
-    def __init__(self, port, baud=921600):
+    def __init__(self, port, baud=921600, dtr="auto"):
         import serial  # imported here so --help works without pyserial
         self.ser = serial.Serial()
         self.ser.port = port
         self.ser.baudrate = baud
         self.ser.timeout = 0.05
-        # Keep DTR/RTS low so opening the port doesn't reset ESP32 boards.
-        self.ser.dtr = False
+        # RTS stays low so opening the port doesn't reset ESP32 boards.
+        self.ser.dtr = want_dtr(port, dtr)
         self.ser.rts = False
         self.ser.open()
         self.name = port
@@ -183,7 +207,7 @@ class ModemError(Exception):
 class Modem:
     """One connected modem. A reader thread splits frames from debug text."""
 
-    def __init__(self, spec, verbose=False):
+    def __init__(self, spec, verbose=False, dtr="auto"):
         self.verbose = verbose
         token = None
         if spec.startswith("tcp:"):
@@ -193,7 +217,7 @@ class Modem:
             token = parts[3] if len(parts) > 3 else None
             self.transport = TcpTransport(host, port)
         else:
-            self.transport = SerialTransport(spec)
+            self.transport = SerialTransport(spec, dtr=dtr)
         self.name = self.transport.name
         self.responses = queue.Queue()
         self.rx_packets = queue.Queue()
@@ -543,9 +567,10 @@ def run_smoke(m, args, rep):
         (f"other band ({other} preset)", dict(PRESETS[other])),
     ]
     rep.data["rejects"] = {}
+    last_ok = back
     for name, bad in bad_cases:
         try:
-            m.set_config(bad)
+            last_ok = m.set_config(bad)
             result = "accepted"
         except ModemError as exc:
             result = str(exc)
@@ -556,9 +581,10 @@ def run_smoke(m, args, rep):
         else:
             rep.check(f"reject {name}", result != "accepted", result)
     # v0.8+: a rejected SET_CONFIG must leave the previous config running,
-    # so GET_CONFIG is unchanged and TX works without reconfiguring.
+    # so GET_CONFIG still shows the last accepted one (the other-band preset
+    # on dual-band chips) and TX works without reconfiguring.
     try:
-        kept = m.get_config() == back
+        kept = m.get_config() == last_ok
         m.transmit(test_payload(1, 16))
         rep.check("rejected config keeps previous", kept, "GET_CONFIG unchanged, TX ok" if kept else "GET_CONFIG changed")
     except ModemError as exc:
@@ -575,22 +601,46 @@ def run_smoke(m, args, rep):
     rep.check("RADIO_RESUME", m.resume())
 
     # CAD on request, then auto-CAD in front of a TX. On a quiet bench
-    # channel every scan should finish and report clear.
+    # channel every scan should finish and report clear. Chips whose radio
+    # info lacks the CAD feature must refuse both cleanly instead.
     try:
+        has_cad = "CAD" in m.radio_info()["features"]
+    except ModemError:
+        has_cad = True   # pre-v0.8 firmware: every build had SX1262 CAD
+    if not has_cad:
+        try:
+            m.cad()
+            rep.check("CAD_REQUEST refused (no CAD)", False, "scan reported a result")
+        except ModemError as exc:
+            rep.check("CAD_REQUEST refused (no CAD)", str(exc) == "ERR_CAD_FAILED", str(exc))
+        refused = not m.set_auto_cad(True)
+        rep.check("auto-CAD refused (no CAD)", refused)
+        if not refused:
+            m.set_auto_cad(False)
+    try:
+        if not has_cad:
+            raise StopIteration
         verdicts = [m.cad() for _ in range(5)]
         rep.data["cad"] = verdicts
         rep.check("CAD_REQUEST completes", True,
                   f"{verdicts.count(False)} clear / {verdicts.count(True)} busy of 5")
+    except StopIteration:
+        pass
     except ModemError as exc:
         rep.check("CAD_REQUEST completes", False, str(exc))
     try:
+        if not has_cad:
+            raise StopIteration
         m.set_auto_cad(True)
         m.transmit(test_payload(0, 16))
         rep.check("TX with auto-CAD", True)
+    except StopIteration:
+        pass
     except ModemError as exc:
         rep.check("TX with auto-CAD", False, str(exc))
     finally:
-        m.set_auto_cad(False)
+        if has_cad:
+            m.set_auto_cad(False)
 
     # TX airtime at bench power
     air = []
@@ -717,12 +767,13 @@ def pair_direction(tx, rx, cfg, count, length, gap):
     expected = lora_time_on_air_us(cfg, length)
     while not rx.rx_packets.empty():
         rx.rx_packets.get_nowait()
-    got, rssi, snr, tx_fail = {}, [], [], 0
+    got, rssi, snr, tx_fail, tx_errors = {}, [], [], 0, {}
     for seq in range(count):
         try:
             tx.transmit(test_payload(seq, length))
-        except ModemError:
+        except ModemError as exc:
             tx_fail += 1
+            tx_errors[str(exc)] = tx_errors.get(str(exc), 0) + 1
             continue
         deadline = time.time() + expected / 1e6 + 0.5
         while time.time() < deadline:
@@ -739,7 +790,7 @@ def pair_direction(tx, rx, cfg, count, length, gap):
                 if s == seq:
                     break
         time.sleep(gap)
-    res = dict(sent=count - tx_fail, tx_fail=tx_fail, received=len(got))
+    res = dict(sent=count - tx_fail, tx_fail=tx_fail, tx_errors=tx_errors, received=len(got))
     if rssi:
         res.update(rssi_min=min(rssi), rssi_avg=round(statistics.mean(rssi), 1), rssi_max=max(rssi),
                    snr_min=min(snr), snr_avg=round(statistics.mean(snr), 1), snr_max=max(snr))
@@ -747,8 +798,8 @@ def pair_direction(tx, rx, cfg, count, length, gap):
 
 
 def cmd_pair(args):
-    a = Modem(args.a, args.verbose)
-    b = Modem(args.b, args.verbose)
+    a = Modem(args.a, args.verbose, args.dtr)
+    b = Modem(args.b, args.verbose, args.dtr)
     try:
         print(f"A: {a.name}  {a.version()}")
         print(f"B: {b.name}  {b.version()}")
@@ -770,6 +821,8 @@ def cmd_pair(args):
                 if "rssi_avg" in r:
                     line += (f"  RSSI {r['rssi_min']}/{r['rssi_avg']}/{r['rssi_max']} dBm"
                              f"  SNR {r['snr_min']}/{r['snr_avg']}/{r['snr_max']} dB (min/avg/max)")
+                if r["tx_errors"]:
+                    line += f"  TX errors {r['tx_errors']}"
                 print(line)
         if args.save:
             with open(args.save, "w", encoding="utf-8") as f:
@@ -803,6 +856,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--port", help='device: "COM19" or "tcp:HOST[:PORT[:TOKEN]]"')
     ap.add_argument("-v", "--verbose", action="store_true", help="show firmware debug text")
+    ap.add_argument("--dtr", choices=("auto", "on", "off"), default="auto",
+                    help="serial DTR line (auto: high for native USB, low for USB-UART bridges)")
     sub = ap.add_subparsers(dest="command", required=True)
 
     sub.add_parser("info", help="version, config, status, noise floor")
@@ -844,7 +899,7 @@ def main():
             return cmd_pair(args)
         if not args.port:
             ap.error("--port is required for this command")
-        m = Modem(args.port, args.verbose)
+        m = Modem(args.port, args.verbose, args.dtr)
         try:
             return {"info": cmd_info, "config": cmd_config, "tx": cmd_tx,
                     "rx": cmd_rx, "smoke": cmd_smoke}[args.command](m, args)

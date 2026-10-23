@@ -1,0 +1,59 @@
+{
+  "a": "COM19",
+  "b": "COM11",
+  "results": [
+    {
+      "sent": 10,
+      "tx_fail": 0,
+      "received": 10,
+      "rssi_min": -66,
+      "rssi_avg": -61.7,
+      "rssi_max": -55,
+      "snr_min": 13.7,
+      "snr_avg": 14.2,
+      "snr_max": 14.7,
+      "direction": "A->B",
+      "sf": 7
+    },
+    {
+      "sent": 10,
+      "tx_fail": 0,
+      "received": 10,
+      "rssi_min": -59,
+      "rssi_avg": -58.3,
+      "rssi_max": -57,
+      "snr_min": 13.2,
+      "snr_avg": 13.6,
+      "snr_max": 14.2,
+      "direction": "B->A",
+      "sf": 7
+    },
+    {
+      "sent": 7,
+      "tx_fail": 3,
+      "received": 7,
+      "rssi_min": -68,
+      "rssi_avg": -64.6,
+      "rssi_max": -61,
+      "snr_min": 10.5,
+      "snr_avg": 12.8,
+      "snr_max": 13.7,
+      "direction": "A->B",
+      "sf": 12
+    },
+    {
+      "sent": 10,
+      "tx_fail": 0,
+      "received": 10,
+      "rssi_min": -68,
+      "rssi_avg": -59.9,
+      "rssi_max": -56,
+      "snr_min": 4.5,
+      "snr_avg": 4.8,
+      "snr_max": 5.5,
+      "direction": "B->A",
+      "sf": 12
+    }
+  ],
+  "timestamp": "2026-10-24T00:08:50"
+}

@@ -1,0 +1,33 @@
+{
+  "a": "COM19",
+  "b": "COM11",
+  "results": [
+    {
+      "sent": 20,
+      "tx_fail": 0,
+      "received": 20,
+      "rssi_min": -64,
+      "rssi_avg": -60.6,
+      "rssi_max": -56,
+      "snr_min": 11.7,
+      "snr_avg": 12.3,
+      "snr_max": 12.7,
+      "direction": "A->B",
+      "sf": 9
+    },
+    {
+      "sent": 20,
+      "tx_fail": 0,
+      "received": 20,
+      "rssi_min": -62,
+      "rssi_avg": -56.5,
+      "rssi_max": -55,
+      "snr_min": 10.7,
+      "snr_avg": 11.0,
+      "snr_max": 11.7,
+      "direction": "B->A",
+      "sf": 9
+    }
+  ],
+  "timestamp": "2026-10-24T00:07:53"
+}

@@ -1,0 +1,281 @@
+{
+  "device": "COM11",
+  "firmware": "v1.4.0-promicro_e80_lr1121",
+  "debug": {
+    "reset_reason": 0,
+    "uptime_ms": 37548,
+    "free_heap": 0,
+    "min_free_heap": 0,
+    "last_loop_us": 1057617
+  },
+  "config": {
+    "freq_hz": 2400500000,
+    "bandwidth_hz": 406250,
+    "sf": 11,
+    "cr": 5,
+    "power_dbm": -9,
+    "syncword": 18,
+    "preamble_len": 16
+  },
+  "power_readback_dbm": -9,
+  "rejects": {
+    "bad SF (13)": "ERR_INVALID_CONFIG",
+    "bad CR (9)": "ERR_INVALID_CONFIG",
+    "bad BW (1 kHz)": "ERR_INVALID_CONFIG",
+    "other band (subg preset)": "accepted"
+  },
+  "tx": [
+    {
+      "len": 16,
+      "airtime_us": 243228,
+      "calc_us": 243239,
+      "round_trip_ms": 253
+    },
+    {
+      "len": 64,
+      "airtime_us": 520483,
+      "calc_us": 520507,
+      "round_trip_ms": 531
+    },
+    {
+      "len": 200,
+      "airtime_us": 1276633,
+      "calc_us": 1276691,
+      "round_trip_ms": 1290
+    }
+  ],
+  "noise_floor_dbm": -112.0,
+  "status": {
+    "uptime_sec": 42,
+    "rx_count": 0,
+    "tx_count": 8,
+    "crc_errors": 0,
+    "last_rssi": 0,
+    "last_snr_x10": 0,
+    "noise_floor_x10": -1120,
+    "temp_c": 24,
+    "radio_state": 0,
+    "battery_mv": 65535
+  },
+  "radio_info": {
+    "version": 1,
+    "chip_id": 2,
+    "chip": "LR1121",
+    "chip_name": "LR1121",
+    "features": [
+      "RX guard"
+    ],
+    "current_band": "2g4",
+    "applied_power_dbm": -9,
+    "bands": [
+      {
+        "band": "subg",
+        "freq_min_hz": 150000000,
+        "freq_max_hz": 960000000,
+        "power_min_dbm": -17,
+        "power_max_dbm": 22,
+        "sf": [
+          5,
+          12
+        ],
+        "cr": [
+          4,
+          8
+        ],
+        "bandwidths_hz": [
+          62500,
+          125000,
+          250000,
+          500000
+        ]
+      },
+      {
+        "band": "2g4",
+        "freq_min_hz": 2400000000,
+        "freq_max_hz": 2500000000,
+        "power_min_dbm": -18,
+        "power_max_dbm": 13,
+        "sf": [
+          5,
+          12
+        ],
+        "cr": [
+          4,
+          8
+        ],
+        "bandwidths_hz": [
+          203125,
+          406250,
+          812500
+        ]
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "ping / version",
+      "ok": true,
+      "detail": "v1.4.0-promicro_e80_lr1121"
+    },
+    {
+      "name": "SET_CONFIG test preset",
+      "ok": true,
+      "detail": "2400.5000 MHz  BW 406.25 kHz  SF11  CR 4/5  -9 dBm  sync 0x12  pre 16"
+    },
+    {
+      "name": "power readback",
+      "ok": true,
+      "detail": "requested -9, modem reports -9"
+    },
+    {
+      "name": "GET_CONFIG matches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "reject bad SF (13)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "reject bad CR (9)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "reject bad BW (1 kHz)",
+      "ok": true,
+      "detail": "ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "rejected config keeps previous",
+      "ok": true,
+      "detail": "GET_CONFIG unchanged, TX ok"
+    },
+    {
+      "name": "recovers after rejects",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "RADIO_STANDBY",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "RADIO_RESUME",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CAD_REQUEST refused (no CAD)",
+      "ok": true,
+      "detail": "ERR_CAD_FAILED"
+    },
+    {
+      "name": "auto-CAD refused (no CAD)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "TX 16 B airtime",
+      "ok": true,
+      "detail": "243228 us vs calc 243239 us (-0.0%), round trip 253 ms"
+    },
+    {
+      "name": "TX 64 B airtime",
+      "ok": true,
+      "detail": "520483 us vs calc 520507 us (-0.0%), round trip 532 ms"
+    },
+    {
+      "name": "TX 200 B airtime",
+      "ok": true,
+      "detail": "1276633 us vs calc 1276691 us (-0.0%), round trip 1290 ms"
+    },
+    {
+      "name": "noise floor plausible",
+      "ok": true,
+      "detail": "-112.0 dBm"
+    },
+    {
+      "name": "TX counter advanced",
+      "ok": true,
+      "detail": "tx_count 8"
+    },
+    {
+      "name": "GET_RADIO_INFO",
+      "ok": true,
+      "detail": "LR1121, bands ['subg', '2g4'], features ['RX guard']"
+    },
+    {
+      "name": "subg 22 dBm request applies 22",
+      "ok": true,
+      "detail": "applied 22 dBm"
+    },
+    {
+      "name": "subg over-ceiling request clamps",
+      "ok": true,
+      "detail": "requested 30, applied 22 dBm"
+    },
+    {
+      "name": "subg below chip minimum rejected",
+      "ok": true,
+      "detail": "-18 dBm: ERR_INVALID_CONFIG"
+    },
+    {
+      "name": "2g4 22 dBm request applies 13",
+      "ok": true,
+      "detail": "applied 13 dBm"
+    },
+    {
+      "name": "2g4 over-ceiling request clamps",
+      "ok": true,
+      "detail": "requested 21, applied 13 dBm"
+    },
+    {
+      "name": "2g4 below chip minimum rejected",
+      "ok": true,
+      "detail": "-19 dBm: ERR_INVALID_CONFIG"
+    }
+  ],
+  "debug_lines": [
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=-9 pwr=-9 max=13 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=13 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=9 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=1000 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=927925000 bw=125000 sf=9 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] setRfSwitchTable(7 modes)",
+    "[INFO] setRxBoostedGainMode(true) -> 0",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=-9 pwr=-9 max=22 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] TX_REQUEST len=16 src=0 state=0",
+    "[INFO] TX_DONE airtime=197583 us, sent via src=0",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=-9 pwr=-9 max=13 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] radio STANDBY",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=-9 pwr=-9 max=13 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] radio RESUME (ok=1)",
+    "[WARN] auto-CAD refused: LR1121 has no CAD support",
+    "[INFO] TX_REQUEST len=16 src=0 state=0",
+    "[INFO] TX_DONE airtime=243228 us, sent via src=0",
+    "[INFO] TX_REQUEST len=64 src=0 state=0",
+    "[INFO] TX_DONE airtime=520483 us, sent via src=0",
+    "[INFO] TX_REQUEST len=200 src=0 state=0",
+    "[INFO] TX_DONE airtime=1276633 us, sent via src=0",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=927925000 bw=125000 sf=9 cr=5 pwr_req=22 sync=0x0012 pre=16",
+    "[INFO] setRfSwitchTable(7 modes)",
+    "[INFO] setRxBoostedGainMode(true) -> 0",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=22 pwr=22 max=22 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=927925000 bw=125000 sf=9 cr=5 pwr_req=30 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=30 pwr=22 max=22 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=927925000 bw=125000 sf=9 cr=5 pwr_req=-18 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=22 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=22 pwr=13 max=13 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=21 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=21 pwr=13 max=13 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-19 sync=0x0012 pre=16",
+    "[INFO] SET_CONFIG recv src=0 board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
+    "[INFO] applyConfig board=ProMicro E80 LR1121 fw=v1.4.0-promicro_e80_lr1121 pwr_req=-9 pwr=-9 max=13 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA"
+  ],
+  "timestamp": "2026-10-24T00:07:19"
+}
