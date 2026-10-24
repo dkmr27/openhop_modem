@@ -1,0 +1,233 @@
+{
+  "presets": [
+    "subg",
+    "2g4"
+  ],
+  "minutes": 60.0,
+  "blocks": [
+    {
+      "preset": "subg",
+      "boards": [
+        0,
+        1,
+        3
+      ],
+      "start": 0.020982980728149414
+    },
+    {
+      "preset": "2g4",
+      "boards": [
+        1,
+        2,
+        3
+      ],
+      "start": 600.6785871982574
+    },
+    {
+      "preset": "subg",
+      "boards": [
+        0,
+        1,
+        3
+      ],
+      "start": 1202.355705022812
+    },
+    {
+      "preset": "2g4",
+      "boards": [
+        1,
+        2,
+        3
+      ],
+      "start": 1803.5278317928314
+    },
+    {
+      "preset": "subg",
+      "boards": [
+        0,
+        1,
+        3
+      ],
+      "start": 2405.016409635544
+    },
+    {
+      "preset": "2g4",
+      "boards": [
+        1,
+        2,
+        3
+      ],
+      "start": 3005.635207414627
+    }
+  ],
+  "links": [
+    {
+      "tx": 0,
+      "rx": 1,
+      "sent": 587,
+      "received": 587,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -59.5,
+      "snr_avg": 12.7
+    },
+    {
+      "tx": 0,
+      "rx": 3,
+      "sent": 587,
+      "received": 587,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -56.1,
+      "snr_avg": 12.4
+    },
+    {
+      "tx": 1,
+      "rx": 0,
+      "sent": 586,
+      "received": 586,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -54.2,
+      "snr_avg": 11.0
+    },
+    {
+      "tx": 1,
+      "rx": 2,
+      "sent": 443,
+      "received": 443,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -34.3,
+      "snr_avg": 7.7
+    },
+    {
+      "tx": 1,
+      "rx": 3,
+      "sent": 1029,
+      "received": 1029,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -47.6,
+      "snr_avg": 10.8
+    },
+    {
+      "tx": 2,
+      "rx": 1,
+      "sent": 441,
+      "received": 441,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -24.3,
+      "snr_avg": 5.1
+    },
+    {
+      "tx": 2,
+      "rx": 3,
+      "sent": 441,
+      "received": 441,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -20.7,
+      "snr_avg": 8.4
+    },
+    {
+      "tx": 3,
+      "rx": 0,
+      "sent": 584,
+      "received": 584,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -25.8,
+      "snr_avg": 11.1
+    },
+    {
+      "tx": 3,
+      "rx": 1,
+      "sent": 1024,
+      "received": 1024,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -36.6,
+      "snr_avg": 10.4
+    },
+    {
+      "tx": 3,
+      "rx": 2,
+      "sent": 440,
+      "received": 440,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -30.4,
+      "snr_avg": 8.3
+    }
+  ],
+  "boards": [
+    {
+      "idx": 0,
+      "port": "COM19",
+      "chip": "SX1262",
+      "version": "v1.4.0-heltec",
+      "sent": 587,
+      "tx_fail": 0,
+      "busy_retries": 0,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 247840,
+      "uptime_s": 32010
+    },
+    {
+      "idx": 1,
+      "port": "COM11",
+      "chip": "LR1121",
+      "version": "v1.4.0-promicro_e80_lr1121",
+      "sent": 1029,
+      "tx_fail": 0,
+      "busy_retries": 0,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 0,
+      "uptime_s": 31986
+    },
+    {
+      "idx": 2,
+      "port": "COM3",
+      "chip": "SX1280",
+      "version": "v1.4.0-promicro_e28",
+      "sent": 441,
+      "tx_fail": 0,
+      "busy_retries": 678,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 0,
+      "uptime_s": 31963
+    },
+    {
+      "idx": 3,
+      "port": "COM9",
+      "chip": "LR2021",
+      "version": "v1.4.0-xiao_s3_lr2021_1w",
+      "sent": 1024,
+      "tx_fail": 0,
+      "busy_retries": 2,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 261904,
+      "uptime_s": 32434
+    }
+  ],
+  "other_packets": {},
+  "timestamp": "2026-10-24T18:46:51"
+}
