@@ -236,8 +236,11 @@ void checkResetButton() {
 }
 
 static void buildAPSsid() {
-    uint8_t mac[6];
-    WiFi.macAddress(mac);
+    // eFuse MAC, as the hostname uses: WiFi.macAddress() returns without
+    // writing before the Wi-Fi interface exists, leaving stack bytes that
+    // came out the same on every board.
+    uint8_t mac[6] = {0};
+    compatGetMac(mac);
     char buf[32];
     snprintf(buf, sizeof(buf), "openHop-Modem-%02X%02X", mac[4], mac[5]);
     apSSID = buf;
