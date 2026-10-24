@@ -1,0 +1,137 @@
+[
+  {
+    "sf": 7,
+    "symbols": 2,
+    "det_min": 10,
+    "quiet_false": 4,
+    "quiet_n": 100,
+    "busy": 35,
+    "busy_n": 40
+  },
+  {
+    "sf": 7,
+    "symbols": 2,
+    "det_min": 13,
+    "quiet_false": 3,
+    "quiet_n": 100,
+    "busy": 39,
+    "busy_n": 40
+  },
+  {
+    "sf": 7,
+    "symbols": 2,
+    "det_min": 16,
+    "quiet_false": 0,
+    "quiet_n": 100,
+    "busy": 38,
+    "busy_n": 40
+  },
+  {
+    "sf": 7,
+    "symbols": 2,
+    "det_min": 20,
+    "quiet_false": 1,
+    "quiet_n": 100,
+    "busy": 39,
+    "busy_n": 40
+  },
+  {
+    "sf": 7,
+    "symbols": 4,
+    "det_min": 10,
+    "quiet_false": 0,
+    "quiet_n": 100,
+    "busy": 39,
+    "busy_n": 40
+  },
+  {
+    "sf": 9,
+    "symbols": 2,
+    "det_min": 10,
+    "quiet_false": 10,
+    "quiet_n": 100,
+    "busy": 40,
+    "busy_n": 40
+  },
+  {
+    "sf": 9,
+    "symbols": 2,
+    "det_min": 13,
+    "quiet_false": 8,
+    "quiet_n": 100,
+    "busy": 40,
+    "busy_n": 40
+  },
+  {
+    "sf": 9,
+    "symbols": 2,
+    "det_min": 16,
+    "quiet_false": 8,
+    "quiet_n": 100,
+    "busy": 40,
+    "busy_n": 40
+  },
+  {
+    "sf": 9,
+    "symbols": 2,
+    "det_min": 20,
+    "quiet_false": 9,
+    "quiet_n": 100,
+    "busy": 40,
+    "busy_n": 40
+  },
+  {
+    "sf": 9,
+    "symbols": 4,
+    "det_min": 10,
+    "quiet_false": 0,
+    "quiet_n": 100,
+    "busy": 40,
+    "busy_n": 40
+  },
+  {
+    "sf": 12,
+    "symbols": 2,
+    "det_min": 10,
+    "quiet_false": 0,
+    "quiet_n": 100,
+    "busy": 29,
+    "busy_n": 40
+  },
+  {
+    "sf": 12,
+    "symbols": 2,
+    "det_min": 13,
+    "quiet_false": 4,
+    "quiet_n": 100,
+    "busy": 30,
+    "busy_n": 40
+  },
+  {
+    "sf": 12,
+    "symbols": 2,
+    "det_min": 16,
+    "quiet_false": 5,
+    "quiet_n": 100,
+    "busy": 40,
+    "busy_n": 40
+  },
+  {
+    "sf": 12,
+    "symbols": 2,
+    "det_min": 20,
+    "quiet_false": 2,
+    "quiet_n": 100,
+    "busy": 33,
+    "busy_n": 40
+  },
+  {
+    "sf": 12,
+    "symbols": 4,
+    "det_min": 10,
+    "quiet_false": 1,
+    "quiet_n": 100,
+    "busy": 34,
+    "busy_n": 40
+  }
+]

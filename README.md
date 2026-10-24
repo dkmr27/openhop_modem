@@ -411,6 +411,20 @@ Modem bootloader, which is not currently planned. Use the generated
 | 0xFE | ERROR             | error code (1 B; `0x0B` = `ERR_NO_RADIO` for boards without LoRa hardware) |
 | 0xFF | PONG              | —                                     |
 
+### CAD on the LR1121, SX1280 and LR2021
+
+`SET_CAD_PARAMS` takes SX1262 values on every chip. The symbol count
+applies as sent; the LR1121, SX1280 and LR2021 keep their own per-SF
+detection thresholds (the SX1262 detPeak/detMin scale does not carry over),
+and `CAD_PARAMS_RESP` echoes 0 for those fields.
+
+**LR1121 boards: set 4 CAD symbols in openHop Core.** At sub-GHz, the
+LR1121's 2-symbol scan (Core's default) reports activity on an idle channel
+on roughly 2-10 % of probes, whatever the thresholds; with 4 symbols that
+drops to 0-1 % with the same detection rate. A false "busy" only costs an
+LBT retry, so 2 symbols still works, just less efficiently. At 2.4 GHz,
+and on the SX1262, SX1280 and LR2021, 2 symbols is fine.
+
 ## Default radio parameters
 
 Firmware boots into the MeshCore **EU Narrow / Switzerland** preset; the host
