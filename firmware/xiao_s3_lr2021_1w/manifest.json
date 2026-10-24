@@ -1,0 +1,24 @@
+{
+  "name": "XIAO ESP32-S3 LoRa2021F33-2G4 1W openHop Modem",
+  "version": "v1.4.0-rhal.1-xiao_s3_lr2021_1w",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "bootloader.bin",
+          "offset": 0
+        },
+        {
+          "path": "partitions.bin",
+          "offset": 32768
+        },
+        {
+          "path": "firmware.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}
