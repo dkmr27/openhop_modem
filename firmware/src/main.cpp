@@ -1154,10 +1154,13 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
             sendError(ERR_INVALID_CONFIG, src);
             break;
         }
+        // Stored and echoed as the chip applies them (see
+        // RadioHal::normalizeCadParams); the host only waits for the ack.
         cadSymNum   = payload[0];
         cadDetPeak  = payload[1];
         cadDetMin   = payload[2];
         cadExitMode = payload[3];
+        RadioHal::normalizeCadParams(cadSymNum, cadDetPeak, cadDetMin, cadExitMode);
         cadCustom   = true;
 
         // Ack before letting the chip settle. A blocking primer scan here
@@ -1166,7 +1169,8 @@ void processHostCommand(uint8_t cmd, const uint8_t* payload, uint16_t len,
         // scanChannel() waiting forever. A short settle delay is enough
         // for the register write to commit; the first real CAD_REQUEST
         // from the host will then behave normally.
-        sendFrame(CMD_CAD_PARAMS_RESP, payload, 4, src);
+        const uint8_t applied[4] = {cadSymNum, cadDetPeak, cadDetMin, cadExitMode};
+        sendFrame(CMD_CAD_PARAMS_RESP, applied, 4, src);
         delay(30);
         break;
     }

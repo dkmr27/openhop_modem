@@ -108,6 +108,14 @@ public:
     bool isReceivingPacket();
 
     // ─── Channel activity detection ─────────────────────────
+    // CAD parameters are in SX126x terms on every chip, as the host sends
+    // them in CMD_SET_CAD_PARAMS: symNum is a symbol code (0-4 = 1, 2, 4,
+    // 8 or 16 symbols), then detPeak, detMin and exit mode. Each chip maps
+    // them to its own CAD command. normalizeCadParams() rewrites them to
+    // what the chip actually applies, still in those terms, with 0 for a
+    // field the chip replaces with its own per-SF default.
+    static void normalizeCadParams(uint8_t& symCode, uint8_t& detPeak,
+                                   uint8_t& detMin, uint8_t& exitMode);
     int16_t startChannelScan();
     int16_t startChannelScan(const ChannelScanConfig_t& config);
     // One IRQ status read; the CAD flags stay latched until cleared.
@@ -135,6 +143,9 @@ private:
 };
 
 extern RadioHal radio;
+
+// SX126x CAD symbol code (0-4) to a symbol count; larger codes clamp to 16.
+inline uint8_t cadSymbolsFromCode(uint8_t code) { return (uint8_t)(1u << (code > 4 ? 4 : code)); }
 
 inline RadioConfig RadioHal::bootConfig() {
     return BOARD.boot_config ? *BOARD.boot_config : defaultConfig();

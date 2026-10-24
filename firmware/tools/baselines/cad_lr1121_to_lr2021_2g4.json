@@ -1,0 +1,152 @@
+{
+  "tx": "COM11",
+  "cad": "COM9",
+  "preset": "2g4",
+  "results": [
+    {
+      "sf": 7,
+      "sym_code": 1,
+      "symbols": 2,
+      "applied": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 34,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 26,
+      "tx_duty": 0.84
+    },
+    {
+      "sf": 7,
+      "sym_code": 2,
+      "symbols": 4,
+      "applied": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 35,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 23,
+      "tx_duty": 0.84
+    },
+    {
+      "sf": 9,
+      "sym_code": 1,
+      "symbols": 2,
+      "applied": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 39,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 9,
+      "tx_duty": 0.95
+    },
+    {
+      "sf": 9,
+      "sym_code": 2,
+      "symbols": 4,
+      "applied": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 1,
+      "quiet_fail": 0,
+      "busy": 39,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 9,
+      "tx_duty": 0.95
+    },
+    {
+      "sf": 11,
+      "sym_code": 1,
+      "symbols": 2,
+      "applied": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 1,
+      "quiet_fail": 0,
+      "busy": 40,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 3,
+      "tx_duty": 0.99
+    },
+    {
+      "sf": 11,
+      "sym_code": 2,
+      "symbols": 4,
+      "applied": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 40,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 3,
+      "tx_duty": 0.99
+    },
+    {
+      "sf": 12,
+      "sym_code": 1,
+      "symbols": 2,
+      "applied": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 1,
+      "quiet_fail": 0,
+      "busy": 40,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 2,
+      "tx_duty": 0.99
+    },
+    {
+      "sf": 12,
+      "sym_code": 2,
+      "symbols": 4,
+      "applied": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 40,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 2,
+      "tx_duty": 0.99
+    }
+  ],
+  "timestamp": "2026-10-24T19:17:13"
+}

@@ -6,10 +6,6 @@
 // each band's ceiling and re-applies it when the band changes. Chip
 // details follow the MeshCore fork's CustomLR2021 (IRQ on DIO9, TCXO
 // fallback, boosted gain only in standby).
-//
-// CAD is not implemented yet for this chip (plan phase 5):
-// startChannelScan() returns RADIOLIB_ERR_UNSUPPORTED and the CAD
-// feature bits are clear in getFeatures().
 // =============================================================
 #include "radio_hal.h"
 
@@ -147,7 +143,7 @@ RadioConfig RadioHal::defaultConfig() {
 // ─── Capabilities ───────────────────────────────────────────
 uint8_t RadioHal::getChipId() { return RADIO_CHIP_LR2021; }
 
-uint8_t RadioHal::getFeatures() { return RADIO_FEATURE_RX_GUARD; }
+uint8_t RadioHal::getFeatures() { return RADIO_FEATURE_CAD | RADIO_FEATURE_RX_GUARD; }
 
 uint8_t RadioHal::getBands(const RadioBandInfo*& bands) {
     bands = kBands;
@@ -268,11 +264,48 @@ bool RadioHal::isReceivingPacket() {
     return false;
 }
 
-// ─── Channel activity detection (phase 5) ───────────────────
-int16_t RadioHal::startChannelScan() { return RADIOLIB_ERR_UNSUPPORTED; }
-int16_t RadioHal::startChannelScan(const ChannelScanConfig_t&) { return RADIOLIB_ERR_UNSUPPORTED; }
-RadioHal::ChannelScanState RadioHal::pollChannelScan() { return CAD_PENDING; }
-int16_t RadioHal::clearChannelScanFlags() { return RADIOLIB_ERR_UNSUPPORTED; }
+// ─── Channel activity detection ─────────────────────────────
+// The symbol count carries over from the SX126x terms; detPeak does not
+// (the LR2021 scale is different, peaks around 56-68) and there is no
+// detMin, so RadioLib's per-SF defaults apply. The scan exits to the
+// fallback mode (standby RC, set by RadioLib); the caller polls the IRQ
+// flags and restarts RX itself.
+void RadioHal::normalizeCadParams(uint8_t& symCode, uint8_t& detPeak,
+                                  uint8_t& detMin, uint8_t& exitMode) {
+    if (symCode > 4) symCode = 4;
+    detPeak = 0;
+    detMin = 0;
+    exitMode = 0;
+}
+
+int16_t RadioHal::startChannelScan() {
+    ChannelScanConfig_t cfg = {};
+    cfg.cad.symNum = 0x01;  // 2 symbols, the openHop Core default
+    return startChannelScan(cfg);
+}
+
+int16_t RadioHal::startChannelScan(const ChannelScanConfig_t& config) {
+    ChannelScanConfig_t cfg = {};
+    cfg.cad.symNum   = cadSymbolsFromCode(config.cad.symNum);
+    cfg.cad.detPeak  = RADIOLIB_LR2021_CAD_PARAM_DEFAULT;
+    cfg.cad.detMin   = RADIOLIB_LR2021_CAD_PARAM_DEFAULT;
+    cfg.cad.exitMode = RADIOLIB_LR2021_CAD_EXIT_MODE_FALLBACK;
+    cfg.cad.timeout  = 0;
+    cfg.cad.irqFlags = RADIOLIB_IRQ_CAD_DEFAULT_FLAGS;
+    cfg.cad.irqMask  = RADIOLIB_IRQ_CAD_DEFAULT_MASK;
+    return chip.startChannelScan(cfg);
+}
+
+RadioHal::ChannelScanState RadioHal::pollChannelScan() {
+    uint32_t irq = chip.getIrqFlags();
+    if (!(irq & RADIOLIB_LR2021_IRQ_CAD_DONE)) return CAD_PENDING;
+    return (irq & RADIOLIB_LR2021_IRQ_CAD_DETECTED) ? CAD_DETECTED : CAD_CLEAR;
+}
+
+int16_t RadioHal::clearChannelScanFlags() {
+    return chip.clearIrqFlags(RADIOLIB_LR2021_IRQ_CAD_DONE |
+                              RADIOLIB_LR2021_IRQ_CAD_DETECTED);
+}
 
 // ─── Maintenance ────────────────────────────────────────────
 int16_t RadioHal::resetAGC() { return RADIOLIB_ERR_UNSUPPORTED; }

@@ -310,6 +310,9 @@ bool RadioHal::isReceivingPacket() {
 }
 
 // ─── Channel activity detection ─────────────────────────────
+// The host's CAD parameters are already SX126x values: applied as sent.
+void RadioHal::normalizeCadParams(uint8_t&, uint8_t&, uint8_t&, uint8_t&) {}
+
 int16_t RadioHal::startChannelScan() { return chip.startChannelScan(); }
 
 int16_t RadioHal::startChannelScan(const ChannelScanConfig_t& config) {

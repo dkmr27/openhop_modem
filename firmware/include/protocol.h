@@ -155,6 +155,10 @@
 //           current config)
 //  features bits: 0=CAD 1=CAD tuning (peak/min) 2=RX-in-progress guard
 //                 3=AGC reset
+//  CMD_SET_CAD_PARAMS takes SX126x values on every chip (symbol code
+//  0-4 = 1/2/4/8/16 symbols, det_peak, det_min, exit_mode). Without the
+//  CAD tuning bit the chip keeps its own per-SF peak/min and standby exit;
+//  CMD_CAD_PARAMS_RESP then echoes 0 for those fields.
 //  power_max_dbm is the effective ceiling: the lower of the chip's limit
 //  and the board's. Only bands usable on this board are listed. bw_hz
 //  lists the standard bandwidths for the band.

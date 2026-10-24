@@ -6,10 +6,6 @@
 // layer clamps power to each band's ceiling and re-applies it when the
 // band changes. Chip workarounds follow the MeshCore fork's
 // CustomLR1121 (DC-DC regulator, header-error recovery).
-//
-// CAD is not implemented yet for this chip (plan phase 5):
-// startChannelScan() returns RADIOLIB_ERR_UNSUPPORTED and the CAD
-// feature bits are clear in getFeatures().
 // =============================================================
 #include "radio_hal.h"
 
@@ -69,6 +65,13 @@ RadioBandInfo kBands[] = {
       k2G4BandwidthsHz,
       (uint8_t)(sizeof(k2G4BandwidthsHz) / sizeof(k2G4BandwidthsHz[0])) },
 };
+
+// CAD detPeak per SF (SF5-SF12), measured on the bench (2026-10-25,
+// sub-GHz and 2.4 GHz): RadioLib's defaults (48-65) gave 5-18 %
+// false alarms on an idle channel with 2-symbol scans; these give
+// 0-2 % with full detection up to SF11. Close to the LR2021 datasheet's.
+const uint8_t kCadDetPeak[8] = { 56, 56, 56, 58, 60, 62, 64, 67 };
+uint8_t currentSf = 9;
 
 }  // namespace
 
@@ -155,7 +158,7 @@ RadioConfig RadioHal::defaultConfig() {
 // ─── Capabilities ───────────────────────────────────────────
 uint8_t RadioHal::getChipId() { return RADIO_CHIP_LR1121; }
 
-uint8_t RadioHal::getFeatures() { return RADIO_FEATURE_RX_GUARD; }
+uint8_t RadioHal::getFeatures() { return RADIO_FEATURE_CAD | RADIO_FEATURE_RX_GUARD; }
 
 uint8_t RadioHal::getBands(const RadioBandInfo*& bands) {
     kBands[0].powerMinDbm = BOARD.lr11x0_force_hp_pa ? -9 : -17;
@@ -207,7 +210,11 @@ int16_t RadioHal::setBandwidth(float bwKHz) {
     return chip.setBandwidth(bwKHz, radioBandFor(freqHz_) == RadioBand::Band2G4);
 }
 
-int16_t RadioHal::setSpreadingFactor(uint8_t sf) { return chip.setSpreadingFactor(sf); }
+int16_t RadioHal::setSpreadingFactor(uint8_t sf) {
+    int16_t state = chip.setSpreadingFactor(sf);
+    if (state == RADIOLIB_ERR_NONE) currentSf = sf;
+    return state;
+}
 int16_t RadioHal::setCodingRate(uint8_t cr) { return chip.setCodingRate(cr); }
 
 int16_t RadioHal::setChipOutputPower(int8_t power) {
@@ -280,11 +287,47 @@ bool RadioHal::isReceivingPacket() {
     return false;
 }
 
-// ─── Channel activity detection (phase 5) ───────────────────
-int16_t RadioHal::startChannelScan() { return RADIOLIB_ERR_UNSUPPORTED; }
-int16_t RadioHal::startChannelScan(const ChannelScanConfig_t&) { return RADIOLIB_ERR_UNSUPPORTED; }
-RadioHal::ChannelScanState RadioHal::pollChannelScan() { return CAD_PENDING; }
-int16_t RadioHal::clearChannelScanFlags() { return RADIOLIB_ERR_UNSUPPORTED; }
+// ─── Channel activity detection ─────────────────────────────
+// The symbol count carries over from the SX126x terms; detPeak/detMin do
+// not (the LR11x0 scale is different), so detPeak comes from kCadDetPeak
+// and detMin is RadioLib's default (10). The scan always exits to
+// standby: the caller polls the IRQ flags and restarts RX itself.
+void RadioHal::normalizeCadParams(uint8_t& symCode, uint8_t& detPeak,
+                                  uint8_t& detMin, uint8_t& exitMode) {
+    if (symCode > 4) symCode = 4;
+    detPeak = 0;
+    detMin = 0;
+    exitMode = 0;
+}
+
+int16_t RadioHal::startChannelScan() {
+    ChannelScanConfig_t cfg = {};
+    cfg.cad.symNum = 0x01;  // 2 symbols, the openHop Core default
+    return startChannelScan(cfg);
+}
+
+int16_t RadioHal::startChannelScan(const ChannelScanConfig_t& config) {
+    ChannelScanConfig_t cfg = {};
+    cfg.cad.symNum   = cadSymbolsFromCode(config.cad.symNum);
+    cfg.cad.detPeak  = kCadDetPeak[(currentSf < 5 ? 5 : currentSf > 12 ? 12 : currentSf) - 5];
+    cfg.cad.detMin   = RADIOLIB_LR11X0_CAD_PARAM_DEFAULT;
+    cfg.cad.exitMode = RADIOLIB_LR11X0_CAD_EXIT_MODE_STBY_RC;
+    cfg.cad.timeout  = 0;
+    cfg.cad.irqFlags = RADIOLIB_IRQ_CAD_DEFAULT_FLAGS;
+    cfg.cad.irqMask  = RADIOLIB_IRQ_CAD_DEFAULT_MASK;
+    return chip.startChannelScan(cfg);
+}
+
+RadioHal::ChannelScanState RadioHal::pollChannelScan() {
+    uint32_t irq = chip.getIrqFlags();
+    if (!(irq & RADIOLIB_LR11X0_IRQ_CAD_DONE)) return CAD_PENDING;
+    return (irq & RADIOLIB_LR11X0_IRQ_CAD_DETECTED) ? CAD_DETECTED : CAD_CLEAR;
+}
+
+int16_t RadioHal::clearChannelScanFlags() {
+    return chip.clearIrqFlags(RADIOLIB_LR11X0_IRQ_CAD_DONE |
+                              RADIOLIB_LR11X0_IRQ_CAD_DETECTED);
+}
 
 // ─── Maintenance ────────────────────────────────────────────
 int16_t RadioHal::resetAGC() { return RADIOLIB_ERR_UNSUPPORTED; }

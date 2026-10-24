@@ -3,10 +3,6 @@
 //
 // 2.4 GHz only. External PA modules (e.g. Ebyte E28) switch through
 // RXEN/TXEN GPIOs from BOARD.rf_switch. No TCXO.
-//
-// CAD is not implemented yet for this chip (plan phase 5):
-// startChannelScan() returns RADIOLIB_ERR_UNSUPPORTED and the CAD
-// feature bits are clear in getFeatures().
 // =============================================================
 #include "radio_hal.h"
 
@@ -158,7 +154,7 @@ RadioConfig RadioHal::defaultConfig() {
 // ─── Capabilities ───────────────────────────────────────────
 uint8_t RadioHal::getChipId() { return RADIO_CHIP_SX1280; }
 
-uint8_t RadioHal::getFeatures() { return RADIO_FEATURE_RX_GUARD; }
+uint8_t RadioHal::getFeatures() { return RADIO_FEATURE_CAD | RADIO_FEATURE_RX_GUARD; }
 
 uint8_t RadioHal::getBands(const RadioBandInfo*& bands) {
     bands = kBands;
@@ -247,11 +243,43 @@ bool RadioHal::isReceivingPacket() {
     return false;
 }
 
-// ─── Channel activity detection (phase 5) ───────────────────
-int16_t RadioHal::startChannelScan() { return RADIOLIB_ERR_UNSUPPORTED; }
-int16_t RadioHal::startChannelScan(const ChannelScanConfig_t&) { return RADIOLIB_ERR_UNSUPPORTED; }
-RadioHal::ChannelScanState RadioHal::pollChannelScan() { return CAD_PENDING; }
-int16_t RadioHal::clearChannelScanFlags() { return RADIOLIB_ERR_UNSUPPORTED; }
+// ─── Channel activity detection ─────────────────────────────
+// The SX128x CAD takes only a symbol count (no detPeak/detMin) and always
+// exits to standby; the caller polls the IRQ flags and restarts RX.
+void RadioHal::normalizeCadParams(uint8_t& symCode, uint8_t& detPeak,
+                                  uint8_t& detMin, uint8_t& exitMode) {
+    if (symCode > 4) symCode = 4;
+    detPeak = 0;
+    detMin = 0;
+    exitMode = 0;
+}
+
+int16_t RadioHal::startChannelScan() {
+    ChannelScanConfig_t cfg = {};
+    cfg.cad.symNum = 0x01;  // 2 symbols, the openHop Core default
+    return startChannelScan(cfg);
+}
+
+int16_t RadioHal::startChannelScan(const ChannelScanConfig_t& config) {
+    // RADIOLIB_SX128X_CAD_ON_<n>_SYMB is the symbol code in bits 7:5.
+    const uint8_t code = config.cad.symNum > 4 ? 4 : config.cad.symNum;
+    ChannelScanConfig_t cfg = {};
+    cfg.cad.symNum   = (uint8_t)(code << 5);
+    cfg.cad.irqFlags = RADIOLIB_IRQ_CAD_DEFAULT_FLAGS;
+    cfg.cad.irqMask  = RADIOLIB_IRQ_CAD_DEFAULT_MASK;
+    return chip.startChannelScan(cfg);
+}
+
+RadioHal::ChannelScanState RadioHal::pollChannelScan() {
+    uint32_t irq = chip.getIrqFlags();
+    if (!(irq & RADIOLIB_SX128X_IRQ_CAD_DONE)) return CAD_PENDING;
+    return (irq & RADIOLIB_SX128X_IRQ_CAD_DETECTED) ? CAD_DETECTED : CAD_CLEAR;
+}
+
+int16_t RadioHal::clearChannelScanFlags() {
+    return chip.clearIrqFlags(RADIOLIB_SX128X_IRQ_CAD_DONE |
+                              RADIOLIB_SX128X_IRQ_CAD_DETECTED);
+}
 
 // ─── Maintenance ────────────────────────────────────────────
 int16_t RadioHal::resetAGC() { return RADIOLIB_ERR_UNSUPPORTED; }

@@ -1,0 +1,80 @@
+{
+  "tx": "COM19",
+  "cad": "COM9",
+  "preset": "subg",
+  "results": [
+    {
+      "sf": 7,
+      "sym_code": 1,
+      "symbols": 2,
+      "applied": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 38,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 9,
+      "tx_duty": 0.94
+    },
+    {
+      "sf": 7,
+      "sym_code": 2,
+      "symbols": 4,
+      "applied": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 37,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 9,
+      "tx_duty": 0.94
+    },
+    {
+      "sf": 9,
+      "sym_code": 1,
+      "symbols": 2,
+      "applied": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 39,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 3,
+      "tx_duty": 0.98
+    },
+    {
+      "sf": 9,
+      "sym_code": 2,
+      "symbols": 4,
+      "applied": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "quiet_busy": 0,
+      "quiet_fail": 0,
+      "busy": 40,
+      "fail": 0,
+      "count": 40,
+      "tx_packets": 4,
+      "tx_duty": 0.98
+    }
+  ],
+  "timestamp": "2026-10-24T19:16:16"
+}

@@ -56,6 +56,8 @@ CMD_CAD_REQUEST = 0x30
 CMD_RX_START = 0x31
 CMD_CAD_RESP = 0x32
 CMD_RX_STARTED = 0x33
+CMD_SET_CAD_PARAMS = 0x34
+CMD_CAD_PARAMS_RESP = 0x35
 CMD_RADIO_STANDBY = 0x40
 CMD_RADIO_RESUME = 0x42
 CMD_RADIO_STANDBY_RESP = 0x44
@@ -400,6 +402,12 @@ class Modem:
     def cad(self):
         """Channel activity detection: True = busy, False = clear."""
         return self.request(CMD_CAD_REQUEST, b"", {CMD_CAD_RESP}, timeout=2)[1][0] != 0
+
+    def set_cad_params(self, sym_code, det_peak, det_min, exit_mode=0):
+        """CMD_SET_CAD_PARAMS (SX126x terms); returns the applied values."""
+        p = self.request(CMD_SET_CAD_PARAMS, bytes([sym_code, det_peak, det_min, exit_mode]),
+                         {CMD_CAD_PARAMS_RESP})[1]
+        return tuple(p[:4])
 
     def set_auto_cad(self, on):
         return self.request(CMD_SET_AUTO_CAD, bytes([1 if on else 0]), {CMD_SET_AUTO_CAD_RESP})[1][0] == 0
