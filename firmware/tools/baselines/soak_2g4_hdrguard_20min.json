@@ -1,0 +1,133 @@
+{
+  "presets": [
+    "2g4"
+  ],
+  "minutes": 20.0,
+  "blocks": [
+    {
+      "preset": "2g4",
+      "boards": [
+        0,
+        1,
+        2
+      ],
+      "start": 0.022628307342529297
+    }
+  ],
+  "links": [
+    {
+      "tx": 0,
+      "rx": 1,
+      "sent": 349,
+      "received": 349,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -66.7,
+      "snr_avg": 8.0
+    },
+    {
+      "tx": 0,
+      "rx": 2,
+      "sent": 349,
+      "received": 349,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -43.8,
+      "snr_avg": 8.5
+    },
+    {
+      "tx": 1,
+      "rx": 0,
+      "sent": 348,
+      "received": 348,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -65.8,
+      "snr_avg": 7.6
+    },
+    {
+      "tx": 1,
+      "rx": 2,
+      "sent": 348,
+      "received": 348,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -30.1,
+      "snr_avg": 7.7
+    },
+    {
+      "tx": 2,
+      "rx": 0,
+      "sent": 348,
+      "received": 348,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -51.4,
+      "snr_avg": 7.4
+    },
+    {
+      "tx": 2,
+      "rx": 1,
+      "sent": 348,
+      "received": 348,
+      "dup": 0,
+      "corrupt": 0,
+      "rssi_avg": -37.5,
+      "snr_avg": 9.0
+    }
+  ],
+  "boards": [
+    {
+      "idx": 0,
+      "port": "COM11",
+      "chip": "LR1121",
+      "version": "v1.4.0-promicro_e80_lr1121",
+      "sent": 349,
+      "tx_fail": 0,
+      "busy_retries": 0,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 0,
+      "uptime_s": 3614
+    },
+    {
+      "idx": 1,
+      "port": "COM3",
+      "chip": "SX1280",
+      "version": "v1.4.0-promicro_e28",
+      "sent": 348,
+      "tx_fail": 0,
+      "busy_retries": 0,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 0,
+      "uptime_s": 1504
+    },
+    {
+      "idx": 2,
+      "port": "COM9",
+      "chip": "LR2021",
+      "version": "v1.4.0-xiao_s3_lr2021_1w",
+      "sent": 348,
+      "tx_fail": 0,
+      "busy_retries": 0,
+      "errors": {},
+      "resets": 0,
+      "config_drift": 0,
+      "poll_errors": 0,
+      "crc_errors": 0,
+      "min_free_heap": 262260,
+      "uptime_s": 4848
+    }
+  ],
+  "other_packets": {
+    "COM9": 1
+  },
+  "timestamp": "2026-10-24T20:15:00"
+}

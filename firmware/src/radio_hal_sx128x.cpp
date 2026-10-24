@@ -17,17 +17,6 @@ class OpenHopSX1280 : public SX1280 {
 public:
     using SX1280::SX1280;
 
-    int16_t startReceive() override {
-        // Include PREAMBLE_DETECTED in the latched IRQs; the passive
-        // reception guard (isReceivingPacket) relies on it.
-        return SX1280::startReceive(
-            RADIOLIB_SX128X_RX_TIMEOUT_INF,
-            RADIOLIB_IRQ_RX_DEFAULT_FLAGS |
-                (1UL << RADIOLIB_IRQ_PREAMBLE_DETECTED),
-            RADIOLIB_IRQ_RX_DEFAULT_MASK,
-            0);
-    }
-
     RadioLibTime_t getTimeOnAir(size_t len) override {
         if (getPacketType() != RADIOLIB_SX128X_PACKET_TYPE_LORA) {
             return SX1280::getTimeOnAir(len);
@@ -202,12 +191,16 @@ uint32_t RadioHal::getTimeOnAir(size_t len) { return chip.getTimeOnAir(len); }
 int16_t  RadioHal::startTransmit(const uint8_t* data, size_t len) { return chip.startTransmit(data, len); }
 int16_t  RadioHal::finishTransmit() { return chip.finishTransmit(); }
 
-// Same staged guard as the SX1262 build (see radio_hal_sx126x.cpp), on the
-// SX128x IRQ bits. A header error ends the reception immediately.
+// Header-only version of the SX1262 build's guard (see
+// radio_hal_sx126x.cpp). At SF11/12 the SX1280 latches PREAMBLE_DETECTED
+// on noise (bench, 2026-10-25: 13-59 % of idle-channel probes, unchanged
+// with a 30 dB attenuator), and each false flag held TX off for a whole
+// short-frame airtime. So only a valid header counts; the preamble window
+// is left to CAD, which on this chip showed no false alarms. A header
+// error ends the reception immediately.
 bool RadioHal::isReceivingPacket() {
     uint32_t irq = chip.getIrqFlags();
     bool header   = (irq & RADIOLIB_SX128X_IRQ_HEADER_VALID) != 0;
-    bool preamble = (irq & RADIOLIB_SX128X_IRQ_PREAMBLE_DETECTED) != 0;
     bool hdrError = (irq & RADIOLIB_SX128X_IRQ_HEADER_ERROR) != 0;
     uint32_t now = millis();
 
@@ -220,20 +213,9 @@ bool RadioHal::isReceivingPacket() {
         if (!rxHeaderSeen_) { rxHeaderSeen_ = true; rxActivityAt_ = now; }
         uint32_t maxMs = (uint32_t)(chip.getTimeOnAir(MAX_LORA_PAYLOAD) / 1000) * 3 / 2 + 100;
         if (now - rxActivityAt_ > maxMs) {
-            chip.clearIrqFlags(RADIOLIB_SX128X_IRQ_PREAMBLE_DETECTED |
-                               RADIOLIB_SX128X_IRQ_HEADER_VALID);
+            chip.clearIrqFlags(RADIOLIB_SX128X_IRQ_HEADER_VALID);
             rxActivityAt_ = 0;
             rxHeaderSeen_ = false;
-            return false;
-        }
-        return true;
-    }
-    if (preamble) {
-        if (rxActivityAt_ == 0) rxActivityAt_ = now;
-        uint32_t preMs = (uint32_t)(chip.getTimeOnAir(1) / 1000) * 3 / 2 + 100;
-        if (now - rxActivityAt_ > preMs) {
-            chip.clearIrqFlags(RADIOLIB_SX128X_IRQ_PREAMBLE_DETECTED);
-            rxActivityAt_ = 0;
             return false;
         }
         return true;

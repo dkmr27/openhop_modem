@@ -3,10 +3,10 @@
   "firmware": "v1.4.0-promicro_e28",
   "debug": {
     "reset_reason": 0,
-    "uptime_ms": 89933,
+    "uptime_ms": 10088,
     "free_heap": 0,
     "min_free_heap": 0,
-    "last_loop_us": 1284180
+    "last_loop_us": 977
   },
   "config": {
     "freq_hz": 2400500000,
@@ -24,6 +24,13 @@
     "bad BW (1 kHz)": "ERR_INVALID_CONFIG",
     "other band (subg preset)": "ERR_INVALID_CONFIG"
   },
+  "cad": [
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
   "tx": [
     {
       "len": 16,
@@ -35,7 +42,7 @@
       "len": 64,
       "airtime_us": 520507,
       "calc_us": 520507,
-      "round_trip_ms": 524
+      "round_trip_ms": 525
     },
     {
       "len": 200,
@@ -44,16 +51,16 @@
       "round_trip_ms": 1284
     }
   ],
-  "noise_floor_dbm": -91.8,
+  "noise_floor_dbm": -105.0,
   "status": {
-    "uptime_sec": 95,
+    "uptime_sec": 15,
     "rx_count": 0,
-    "tx_count": 20,
+    "tx_count": 5,
     "crc_errors": 0,
     "last_rssi": 0,
     "last_snr_x10": 0,
-    "noise_floor_x10": -918,
-    "temp_c": 26,
+    "noise_floor_x10": -1050,
+    "temp_c": 29,
     "radio_state": 0,
     "battery_mv": 65535
   },
@@ -63,6 +70,7 @@
     "chip": "SX1280",
     "chip_name": "SX1280",
     "features": [
+      "CAD",
       "RX guard"
     ],
     "current_band": "2g4",
@@ -148,12 +156,12 @@
       "detail": ""
     },
     {
-      "name": "CAD_REQUEST refused (no CAD)",
+      "name": "CAD_REQUEST completes",
       "ok": true,
-      "detail": "ERR_CAD_FAILED"
+      "detail": "5 clear / 0 busy of 5"
     },
     {
-      "name": "auto-CAD refused (no CAD)",
+      "name": "TX with auto-CAD",
       "ok": true,
       "detail": ""
     },
@@ -165,7 +173,7 @@
     {
       "name": "TX 64 B airtime",
       "ok": true,
-      "detail": "520507 us vs calc 520507 us (+0.0%), round trip 525 ms, 2 busy retries"
+      "detail": "520507 us vs calc 520507 us (+0.0%), round trip 526 ms"
     },
     {
       "name": "TX 200 B airtime",
@@ -175,17 +183,17 @@
     {
       "name": "noise floor plausible",
       "ok": true,
-      "detail": "-91.8 dBm"
+      "detail": "-105.0 dBm"
     },
     {
       "name": "TX counter advanced",
       "ok": true,
-      "detail": "tx_count 20"
+      "detail": "tx_count 5"
     },
     {
       "name": "GET_RADIO_INFO",
       "ok": true,
-      "detail": "SX1280, bands ['2g4'], features ['RX guard']"
+      "detail": "SX1280, bands ['2g4'], features ['CAD', 'RX guard']"
     },
     {
       "name": "2g4 22 dBm request applies -2",
@@ -217,7 +225,10 @@
     "[INFO] radio STANDBY",
     "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA",
     "[INFO] radio RESUME (ok=1)",
-    "[WARN] auto-CAD refused: SX1280 has no CAD support",
+    "[INFO] auto-CAD ON",
+    "[INFO] TX_REQUEST len=16 src=0 state=0",
+    "[INFO] TX_DONE airtime=243239 us, sent via src=0",
+    "[INFO] auto-CAD OFF",
     "[INFO] TX_REQUEST len=16 src=0 state=0",
     "[INFO] TX_DONE airtime=243239 us, sent via src=0",
     "[INFO] TX_REQUEST len=64 src=0 state=0",
@@ -232,5 +243,5 @@
     "[INFO] SET_CONFIG recv src=0 board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 freq=2400500000 bw=406250 sf=11 cr=5 pwr_req=-9 sync=0x0012 pre=16",
     "[INFO] applyConfig board=ProMicro E28 SX1280 fw=v1.4.0-promicro_e28 pwr_req=-9 pwr=-9 max=-2 setOutputPower=0 ocp_before=-1mA ocp_after=-1mA"
   ],
-  "timestamp": "2026-10-24T09:55:45"
+  "timestamp": "2026-10-24T19:50:11"
 }

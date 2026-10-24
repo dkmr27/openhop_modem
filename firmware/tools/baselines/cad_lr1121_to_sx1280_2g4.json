@@ -15,10 +15,10 @@
       ],
       "quiet_busy": 0,
       "quiet_fail": 0,
-      "busy": 30,
+      "busy": 35,
       "fail": 0,
       "count": 40,
-      "tx_packets": 24,
+      "tx_packets": 23,
       "tx_duty": 0.84
     },
     {
@@ -36,7 +36,7 @@
       "busy": 34,
       "fail": 0,
       "count": 40,
-      "tx_packets": 23,
+      "tx_packets": 24,
       "tx_duty": 0.84
     },
     {
@@ -51,10 +51,10 @@
       ],
       "quiet_busy": 0,
       "quiet_fail": 0,
-      "busy": 32,
+      "busy": 34,
       "fail": 0,
       "count": 40,
-      "tx_packets": 22,
+      "tx_packets": 24,
       "tx_duty": 0.84
     },
     {
@@ -67,9 +67,9 @@
         0,
         0
       ],
-      "quiet_busy": 4,
+      "quiet_busy": 0,
       "quiet_fail": 0,
-      "busy": 40,
+      "busy": 37,
       "fail": 0,
       "count": 40,
       "tx_packets": 8,
@@ -87,7 +87,7 @@
       ],
       "quiet_busy": 0,
       "quiet_fail": 0,
-      "busy": 37,
+      "busy": 36,
       "fail": 0,
       "count": 40,
       "tx_packets": 9,
@@ -105,7 +105,7 @@
       ],
       "quiet_busy": 0,
       "quiet_fail": 0,
-      "busy": 40,
+      "busy": 39,
       "fail": 0,
       "count": 40,
       "tx_packets": 9,
@@ -121,9 +121,9 @@
         0,
         0
       ],
-      "quiet_busy": 24,
+      "quiet_busy": 0,
       "quiet_fail": 0,
-      "busy": 40,
+      "busy": 39,
       "fail": 0,
       "count": 40,
       "tx_packets": 3,
@@ -139,7 +139,7 @@
         0,
         0
       ],
-      "quiet_busy": 19,
+      "quiet_busy": 0,
       "quiet_fail": 0,
       "busy": 40,
       "fail": 0,
@@ -157,7 +157,7 @@
         0,
         0
       ],
-      "quiet_busy": 4,
+      "quiet_busy": 0,
       "quiet_fail": 0,
       "busy": 40,
       "fail": 0,
@@ -175,9 +175,9 @@
         0,
         0
       ],
-      "quiet_busy": 25,
+      "quiet_busy": 1,
       "quiet_fail": 0,
-      "busy": 40,
+      "busy": 39,
       "fail": 0,
       "count": 40,
       "tx_packets": 2,
@@ -193,7 +193,7 @@
         0,
         0
       ],
-      "quiet_busy": 32,
+      "quiet_busy": 0,
       "quiet_fail": 0,
       "busy": 40,
       "fail": 0,
@@ -211,7 +211,7 @@
         0,
         0
       ],
-      "quiet_busy": 13,
+      "quiet_busy": 0,
       "quiet_fail": 0,
       "busy": 40,
       "fail": 0,
@@ -220,5 +220,5 @@
       "tx_duty": 0.99
     }
   ],
-  "timestamp": "2026-10-24T19:11:17"
+  "timestamp": "2026-10-24T19:53:49"
 }
