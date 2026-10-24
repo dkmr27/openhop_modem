@@ -152,6 +152,21 @@ ENV_METADATA: dict[str, dict[str, str | bool]] = {
         "chip_family": "NRF52",
         "web_manifest": False,
     },
+    "promicro_e80_lr1121": {
+        "name": "ProMicro nRF52840 E80 LR1121 openHop Modem",
+        "chip_family": "NRF52",
+        "web_manifest": False,
+    },
+    "promicro_e28": {
+        "name": "ProMicro nRF52840 E28 SX1280 openHop Modem",
+        "chip_family": "NRF52",
+        "web_manifest": False,
+    },
+    "xiao_s3_lr2021_1w": {
+        "name": "XIAO ESP32-S3 LoRa2021F33-2G4 1W openHop Modem",
+        "chip_family": "ESP32-S3",
+        "web_manifest": True,
+    },
 }
 
 # Board headers generally map 1:1 to env names in this repo.
@@ -177,6 +192,9 @@ BOARD_HEADER_TO_ENV = {
     "firmware/include/boards/rak4631_wismesh_eth.h": "rak4631_wismesh_eth",
     "firmware/include/boards/rak4631_usb.h": "rak4631_usb",
     "firmware/include/boards/rak3401.h": "rak3401",
+    "firmware/include/boards/promicro_e80_lr1121.h": "promicro_e80_lr1121",
+    "firmware/include/boards/promicro_e28.h": "promicro_e28",
+    "firmware/include/boards/xiao_s3_lr2021_1w.h": "xiao_s3_lr2021_1w",
 }
 
 # Changes here are shared enough that building all envs is safer.
